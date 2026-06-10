@@ -1,0 +1,96 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+import PetCard from '../../components/PetCard.astro';
+import { pets } from '../../data/pets';
+
+export function getStaticPaths() {
+  return pets.map((pet) => ({
+    params: { id: pet.id },
+    props: { pet },
+  }));
+}
+
+const { pet } = Astro.props as {
+  pet: (typeof pets)[number];
+};
+
+const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0, 3);
+---
+
+<BaseLayout title={`${pet.name} - PawsHome`} description={pet.description}>
+  <Header />
+
+  <main>
+    <section class="hero pet-detail-hero" style="min-height: auto;">
+      <div class="container">
+        <div class="pet-detail-layout fade-in is-visible">
+          <div class="search-card pet-detail-card">
+            <div class="pet-detail-avatar" aria-hidden="true">{pet.emoji}</div>
+            <div class="pet-detail-header">
+              <div class="pet-header">
+                <h1>{pet.name}</h1>
+                <span class={`pet-gender ${pet.gender}`}>{pet.gender === 'male' ? '♂' : '♀'}</span>
+              </div>
+              {pet.badge && <div class={`pet-badge ${pet.badge.tone}`}>{pet.badge.label}</div>}
+            </div>
+
+            <p class="pet-detail-lead">{pet.description}</p>
+            <p class="pet-description">{pet.story}</p>
+
+            <div class="pet-details pet-detail-facts">
+              <span class="detail-item">🎂 {pet.age}</span>
+              <span class="detail-item">📏 {pet.size}</span>
+              <span class="detail-item">📍 {pet.location}</span>
+              <span class="detail-item">🐾 {pet.species === 'dog' ? '狗狗' : '貓咪'}</span>
+            </div>
+
+            <div class="pet-tags">
+              {pet.tags.map((tag) => <span class="tag">{tag}</span>)}
+            </div>
+
+            <div class="hero-actions">
+              <a class="btn-primary" href="/apply">我想領養這隻毛孩</a>
+              <a class="btn-outline" href="/pets">回到毛孩列表</a>
+            </div>
+          </div>
+
+          <aside class="search-card pet-detail-sidebar">
+            <p class="section-eyebrow">Pet Profile</p>
+            <h2>毛孩小檔案</h2>
+            <ul class="pet-profile-list">
+              <li><strong>性別：</strong>{pet.gender === 'male' ? '公' : '母'}</li>
+              <li><strong>種類：</strong>{pet.species === 'dog' ? '狗狗' : '貓咪'}</li>
+              <li><strong>年齡：</strong>{pet.age}</li>
+              <li><strong>體型：</strong>{pet.size}</li>
+              <li><strong>所在地：</strong>{pet.location}</li>
+            </ul>
+            <div class="pet-profile-note">
+              <h3>領養提醒</h3>
+              <p>領養前請先確認居住環境、家人共識與照顧時間，再開始下一步申請。</p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="featured-pets">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Recommended"
+          title="你也可以看看這些毛孩"
+          description="如果這隻毛孩還在等你，也可以先看看其他同樣可愛的夥伴。"
+        />
+
+        <div class="pets-grid">
+          {relatedPets.map((relatedPet) => <PetCard pet={relatedPet} />)}
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

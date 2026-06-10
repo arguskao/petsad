@@ -1,0 +1,29 @@
+---
+import type { Story } from '../data/stories';
+
+interface Props {
+  story: Story;
+}
+
+const { story } = Astro.props as Props;
+---
+
+<article class="story-card fade-in">
+  <div class="story-image">
+    <div class="story-placeholder">
+      <span class="story-emoji">{story.emoji}</span>
+    </div>
+  </div>
+  <div class="story-content">
+    <h3>{story.title}</h3>
+    <p class="story-text">「{story.quote}」</p>
+    <div class="story-author">
+      <div class="author-avatar">{story.avatar}</div>
+      <div class="author-info">
+        <div class="author-name">{story.author}</div>
+        <div class="author-date">{story.date}</div>
+      </div>
+    </div>
+  </div>
+</article>
+

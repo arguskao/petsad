@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import ShelterCard from '../components/ShelterCard.astro';
+import { shelters } from '../data/shelters';
+---
+
+<BaseLayout title="合作夥伴 - PawsHome" description="探索我們合作的收容所與中途之家。">
+  <Header />
+  <main>
+    <section class="shelters" style="padding-top: 7.5rem;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Partners"
+          title="合作夥伴"
+          description="探索我們合作的收容所與中途之家。"
+        />
+        <div class="shelters-grid">
+          {shelters.map((shelter) => <ShelterCard shelter={shelter} />)}
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>
+

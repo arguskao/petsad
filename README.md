@@ -1,6 +1,12 @@
+這東西很棒
+https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+從這裡可以發揮
+
 # PawsHome - 寵物領養平台 Landing Page
 
 溫馨感人的寵物領養平台著陸頁，使用溫暖色調與動態互動效果，使用 Cloudflare Pages 部署。
+
+目前專案正在從純靜態 `public/` 版本，遷移到 Astro v6 架構。新的頁面骨架在 `src/`，舊版靜態檔案會暫時保留作為參考。
 
 ## 功能特色
 
@@ -39,10 +45,15 @@
 
 ```
 .
-├── public/
-│   ├── index.html      # 主頁面
-│   ├── styles.css      # 樣式表
-│   └── script.js       # 互動效果
+├── astro.config.mjs    # Astro 設定
+├── public/             # 舊版靜態首頁（過渡參考）
+├── src/
+│   ├── components/     # 可重用元件
+│   ├── data/           # 寵物 / 故事 / 合作夥伴資料
+│   ├── layouts/        # 共用版型
+│   ├── pages/          # Astro 頁面
+│   └── styles/         # 全域樣式
+├── static/             # Astro publicDir（過渡時保持空目錄）
 ├── package.json
 ├── tsconfig.json
 └── wrangler.toml       # Cloudflare 設定
@@ -75,25 +86,38 @@ npm run dev
 
 訪問 http://localhost:8787 查看網站
 
+如果你要看 Astro v6 骨架：
+
+```bash
+npm run dev:astro
+```
+
 ### 3. 部署到 Cloudflare Pages
 
 ```bash
 npm run deploy
 ```
 
+Astro 版本則使用：
+
+```bash
+npm run build:astro
+npm run deploy:astro
+```
+
 ## 客製化指南
 
 ### 修改品牌資訊
 
-在 `public/index.html` 中搜尋並替換：
-- `PawsHome` → 你的平台名稱
-- 修改 logo SVG（可愛的愛心爪印設計）
-- 更新 meta 標籤（title, description）
-- 替換寵物資訊與故事
+舊版靜態頁可以在 `public/index.html` 裡修改；Astro 版建議優先改這些檔案：
+- `src/data/site.ts`：網站名稱、標題、描述、導覽列
+- `src/pages/index.astro`：首頁文案與區塊內容
+- `src/components/Header.astro` / `src/components/Footer.astro`：導覽與頁尾
+- `src/layouts/BaseLayout.astro`：meta 標籤與共用 `<head>`
 
 ### 調整顏色主題
 
-在 `public/styles.css` 的 `:root` 區塊修改：
+舊版靜態頁在 `public/styles.css`；Astro 版請改 `src/styles/global.css` 的 `:root` 區塊：
 
 ```css
 :root {
@@ -107,9 +131,9 @@ npm run deploy
 ### 添加真實寵物照片
 
 替換 `.pet-emoji` 佔位符：
-1. 在 `public/images/pets/` 目錄添加寵物照片
-2. 修改 HTML 中的 `.pet-placeholder`
-3. 使用溫馨可愛的寵物照片
+1. 在 `public/images/pets/` 目錄添加寵物照片，或改放到 Astro 的 `static/`
+2. 修改 `src/components/PetCard.astro` 的 `.pet-placeholder`
+3. 如果要改成真實照片，優先把資料放進 `src/data/pets.ts`
 4. 建議使用 WebP 格式以優化載入速度
 
 ### 連接後端 API

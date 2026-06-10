@@ -1,0 +1,47 @@
+---
+import { footerColumns, site } from '../data/site';
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-main">
+        <div class="footer-brand">
+          <a class="logo" href="/" aria-label={site.name}>
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <circle cx="20" cy="20" r="18" fill="#FF6B6B" opacity="0.2" />
+              <path d="M12 18C12 18 10 14 12 12C14 10 16 12 16 12C16 12 18 10 20 10C22 10 24 12 24 12C24 12 26 10 28 12C30 14 28 18 28 18C28 18 32 20 32 24C32 28 28 32 20 32C12 32 8 28 8 24C8 20 12 18 12 18Z" fill="#FF6B6B" />
+              <circle cx="16" cy="20" r="2" fill="white" />
+              <circle cx="24" cy="20" r="2" fill="white" />
+            </svg>
+            <span>{site.name}</span>
+          </a>
+          <p class="footer-tagline">給每一隻毛孩一個溫暖的家</p>
+          <div class="social-links">
+            <a href="#" class="social-link">FB</a>
+            <a href="#" class="social-link">IG</a>
+            <a href="#" class="social-link">YT</a>
+          </div>
+        </div>
+
+        <div class="footer-links">
+          {footerColumns.map((column) => (
+            <div class="footer-col">
+              <h4>{column.title}</h4>
+              {column.links.map((link) => <a href={link.href}>{link.label}</a>)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 PawsHome. 用愛守護每一個生命</p>
+        <div class="footer-legal">
+          <a href="#">隱私權政策</a>
+          <a href="#">使用條款</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+

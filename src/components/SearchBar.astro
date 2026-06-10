@@ -1,0 +1,70 @@
+---
+const typeOptions = [
+  { value: 'all', label: '全部' },
+  { value: 'dog', label: '狗狗' },
+  { value: 'cat', label: '貓咪' },
+  { value: 'other', label: '其他' },
+];
+
+const ageOptions = [
+  { value: 'any', label: '不限' },
+  { value: 'young', label: '幼年（0-1歲）' },
+  { value: 'adult', label: '成年（1-7歲）' },
+  { value: 'senior', label: '老年（7歲以上）' },
+];
+
+const sizeOptions = [
+  { value: 'any', label: '不限' },
+  { value: 'small', label: '小型' },
+  { value: 'medium', label: '中型' },
+  { value: 'large', label: '大型' },
+];
+
+const areaOptions = [
+  { value: 'all', label: '全台灣' },
+  { value: 'taipei', label: '台北市' },
+  { value: 'newtaipei', label: '新北市' },
+  { value: 'taoyuan', label: '桃園市' },
+  { value: 'taichung', label: '台中市' },
+  { value: 'tainan', label: '台南市' },
+  { value: 'kaohsiung', label: '高雄市' },
+];
+---
+
+<form class="search-filters" data-pet-filter-form>
+  <div class="filter-group">
+    <label for="type">寵物類型</label>
+    <select id="type" name="type" class="filter-select" data-filter-select="type">
+      {typeOptions.map((option) => <option value={option.value}>{option.label}</option>)}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="age">年齡</label>
+    <select id="age" name="age" class="filter-select" data-filter-select="age">
+      {ageOptions.map((option) => <option value={option.value}>{option.label}</option>)}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="size">體型</label>
+    <select id="size" name="size" class="filter-select" data-filter-select="size">
+      {sizeOptions.map((option) => <option value={option.value}>{option.label}</option>)}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="area">地區</label>
+    <select id="area" name="area" class="filter-select" data-filter-select="area">
+      {areaOptions.map((option) => <option value={option.value}>{option.label}</option>)}
+    </select>
+  </div>
+
+  <button class="btn-primary" type="submit" data-toast="🔍 搜尋中...">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" />
+      <path d="M13 13L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </svg>
+    搜尋
+  </button>
+</form>

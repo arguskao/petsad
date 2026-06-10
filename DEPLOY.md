@@ -1,4 +1,27 @@
 # 部署指南
+領養網站
+
+## Astro v6 部署路線
+
+目前這個專案正在往 Astro v6 遷移。新的骨架會輸出到 `dist/`，而不是舊版的 `public/`。
+
+本地開發：
+
+```bash
+npm run dev:astro
+```
+
+建置：
+
+```bash
+npm run build:astro
+```
+
+部署到 Cloudflare Pages：
+
+```bash
+npm run deploy:astro
+```
 
 ## 部署到 GitHub Pages
 
@@ -38,7 +61,7 @@ https://你的使用者名稱.github.io/你的repo名稱/
 # 安裝依賴
 pnpm install
 
-# 部署到 Cloudflare Pages
+# 部署舊版靜態首頁
 pnpm deploy
 ```
 
@@ -48,8 +71,8 @@ pnpm deploy
 2. 進入 **Pages** > **Create a project**
 3. 連接你的 GitHub repository
 4. 設定建置配置：
-   - **Build command**: 留空
-   - **Build output directory**: `public`
+   - **Build command**: `npm run build:astro`
+   - **Build output directory**: `dist`
 5. 點擊 **Save and Deploy**
 
 ## 部署到 Vercel
@@ -64,15 +87,15 @@ vercel --prod
 
 設定：
 - **Framework Preset**: Other
-- **Build Command**: 留空
-- **Output Directory**: `public`
+- **Build Command**: `npm run build:astro`
+- **Output Directory**: `dist`
 
 ## 部署到 Netlify
 
 ### 方法 1：拖放部署
 
 1. 訪問 [Netlify Drop](https://app.netlify.com/drop)
-2. 直接拖放 `public` 資料夾
+2. 直接拖放 `dist` 資料夾
 
 ### 方法 2：Git 整合
 
@@ -80,8 +103,8 @@ vercel --prod
 2. 點擊 **Add new site** > **Import an existing project**
 3. 連接你的 GitHub repository
 4. 設定建置配置：
-   - **Build command**: 留空
-   - **Publish directory**: `public`
+   - **Build command**: `npm run build:astro`
+   - **Publish directory**: `dist`
 5. 點擊 **Deploy site**
 
 ## 自訂網域

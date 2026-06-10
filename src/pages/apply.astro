@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+---
+
+<BaseLayout title="領養 / 中途申請 - PawsHome" description="提交你的領養或中途申請，開始和毛孩相遇的旅程。">
+  <Header />
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Apply"
+          title="領養 / 中途申請"
+          description="這裡會成為你的申請入口。先把頁面架起來，之後再接 API 與表單驗證。"
+        />
+
+        <div class="search-card fade-in is-visible">
+          <h3>目前規劃</h3>
+          <p class="pet-description">下一步會在這裡接入表單、Turnstile 驗證與 API 提交。</p>
+          <div class="hero-actions">
+            <a class="btn-primary" href="/pets">先去看看毛孩</a>
+            <a class="btn-outline" href="/">回首頁</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>
+

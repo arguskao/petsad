@@ -1,0 +1,194 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import SearchBar from '../components/SearchBar.astro';
+import PetCard from '../components/PetCard.astro';
+import StoryCard from '../components/StoryCard.astro';
+import ShelterCard from '../components/ShelterCard.astro';
+import { pets } from '../data/pets';
+import { stories } from '../data/stories';
+import { shelters } from '../data/shelters';
+---
+
+<BaseLayout>
+  <Header />
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-badge fade-in is-visible">
+            <span class="badge-icon">🐾</span>
+            <span>已有 12,847 隻毛孩找到新家</span>
+          </div>
+
+          <h1 class="hero-title fade-in is-visible">
+            給牠們一個<br />
+            <span class="highlight">溫暖的家</span>
+          </h1>
+
+          <p class="hero-description fade-in is-visible">
+            每一隻毛孩都值得被愛。在這裡，你可以找到最適合你的毛孩夥伴，
+            一起創造美好的回憶。
+          </p>
+
+          <div class="hero-actions fade-in is-visible">
+            <a class="btn-primary large" href="/pets">開始尋找毛孩</a>
+            <a class="btn-outline large" href="/apply">我想提供中途</a>
+          </div>
+
+          <div class="hero-stats" id="hero-stats">
+            <div class="stat-item fade-in is-visible">
+              <div class="stat-icon">🐕</div>
+              <div class="stat-info">
+                <div class="stat-number">2,847</div>
+                <div class="stat-label">等待領養的狗狗</div>
+              </div>
+            </div>
+            <div class="stat-item fade-in is-visible">
+              <div class="stat-icon">🐈</div>
+              <div class="stat-info">
+                <div class="stat-number">1,923</div>
+                <div class="stat-label">等待領養的貓咪</div>
+              </div>
+            </div>
+            <div class="stat-item fade-in is-visible">
+              <div class="stat-icon">❤️</div>
+              <div class="stat-info">
+                <div class="stat-number">156</div>
+                <div class="stat-label">合作收容所</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-decoration" aria-hidden="true">
+        <div class="floating-paw paw-1">🐾</div>
+        <div class="floating-paw paw-2">🐾</div>
+        <div class="floating-paw paw-3">🐾</div>
+      </div>
+    </section>
+
+    <section class="search-preview">
+      <div class="container">
+        <div class="search-card fade-in is-visible">
+          <h3>快速搜尋你的理想毛孩</h3>
+          <SearchBar />
+        </div>
+      </div>
+    </section>
+
+    <section id="pets" class="featured-pets">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Featured Pets"
+          title="等待愛的毛孩們"
+          description="每一隻都有獨特的故事，等待與你相遇"
+        />
+
+        <div class="pets-grid">
+          {pets.map((pet) => <PetCard pet={pet} />)}
+        </div>
+
+        <div class="section-footer">
+          <a class="btn-outline" href="/pets">查看更多毛孩</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="how-it-works">
+      <div class="container">
+        <SectionHeader
+          eyebrow="How It Works"
+          title="簡單四步驟，開始領養"
+          description="我們讓領養過程變得簡單又安心"
+        />
+
+        <div class="steps-grid">
+          <article class="step-card fade-in is-visible">
+            <div class="step-number">1</div>
+            <div class="step-icon">🔍</div>
+            <h3>瀏覽毛孩</h3>
+            <p>使用篩選功能找到最適合你的毛孩夥伴</p>
+          </article>
+          <div class="step-arrow" aria-hidden="true">→</div>
+          <article class="step-card fade-in is-visible">
+            <div class="step-number">2</div>
+            <div class="step-icon">📝</div>
+            <h3>提出申請</h3>
+            <p>填寫領養申請表，讓我們了解你的家庭環境</p>
+          </article>
+          <div class="step-arrow" aria-hidden="true">→</div>
+          <article class="step-card fade-in is-visible">
+            <div class="step-number">3</div>
+            <div class="step-icon">🤝</div>
+            <h3>面談配對</h3>
+            <p>與收容所安排見面，確認彼此適合</p>
+          </article>
+          <div class="step-arrow" aria-hidden="true">→</div>
+          <article class="step-card fade-in is-visible">
+            <div class="step-number">4</div>
+            <div class="step-icon">🏠</div>
+            <h3>帶回家</h3>
+            <p>完成手續，迎接新家庭成員</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="stories" class="success-stories">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Stories"
+          title="溫馨的相遇故事"
+          description="看看這些幸福的家庭如何與毛孩相遇"
+        />
+
+        <div class="stories-grid">
+          {stories.map((story) => <StoryCard story={story} />)}
+        </div>
+      </div>
+    </section>
+
+    <section id="shelters" class="shelters">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Partners"
+          title="我們的合作夥伴"
+          description="與全台 156 家收容所和中途之家合作"
+        />
+
+        <div class="shelters-grid">
+          {shelters.map((shelter) => <ShelterCard shelter={shelter} />)}
+        </div>
+
+        <div class="section-footer">
+          <a class="btn-outline" href="/shelters">查看所有合作夥伴</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="container">
+        <div class="cta-content fade-in is-visible">
+          <div class="cta-icon">🐾</div>
+          <h2>準備好迎接新家人了嗎？</h2>
+          <p>現在就開始尋找你的毛孩夥伴，給牠一個充滿愛的家</p>
+          <div class="cta-actions">
+            <a class="btn-primary large" href="/pets">開始領養旅程</a>
+            <a class="btn-outline large white" href="/#how-it-works">了解更多資訊</a>
+          </div>
+          <div class="cta-note">
+            <p>💡 領養前建議：請確保你已準備好照顧毛孩一輩子的責任與承諾</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+

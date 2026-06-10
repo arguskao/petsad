@@ -10,11 +10,14 @@
         "skipLibCheck": true,
         "esModuleInterop": true,
         "types": [
-            "@cloudflare/workers-types"
+            "@cloudflare/workers-types",
+            "astro/client"
         ]
     },
     "include": [
-        "functions/**/*"
+        "functions/**/*",
+        "src/**/*",
+        "astro.config.mjs"
     ],
     "exclude": [
         "node_modules"

@@ -1,0 +1,20 @@
+---
+import type { Shelter } from '../data/shelters';
+
+interface Props {
+  shelter: Shelter;
+}
+
+const { shelter } = Astro.props as Props;
+---
+
+<article class="shelter-card fade-in" tabindex="0">
+  <div class="shelter-icon">{shelter.icon}</div>
+  <h3>{shelter.name}</h3>
+  <p>{shelter.description}</p>
+  <div class="shelter-stats">
+    <span>📍 {shelter.location}</span>
+    <span>🐾 {shelter.availablePets} 隻待領養</span>
+  </div>
+</article>
+

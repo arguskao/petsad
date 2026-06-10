@@ -1,0 +1,151 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+import SearchBar from '../../components/SearchBar.astro';
+import PetCard from '../../components/PetCard.astro';
+import { pets } from '../../data/pets';
+---
+
+<BaseLayout title="尋找毛孩 - PawsHome" description="瀏覽全部等待領養的毛孩，找到最適合你的夥伴。">
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Pets"
+          title="尋找毛孩"
+          description="先用篩選找到你想認識的夥伴，再進一步查看詳情。"
+        />
+        <div class="search-card fade-in is-visible">
+          <h3>篩選條件</h3>
+          <SearchBar />
+          <p class="pet-results-meta" id="pet-results-meta" aria-live="polite"></p>
+          <p class="pet-empty-state" id="pet-empty-state" hidden>沒有找到符合條件的毛孩，試試調整篩選條件。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="featured-pets">
+      <div class="container">
+        <div class="pets-grid" id="pets-grid">
+          {pets.map((pet) => <PetCard pet={pet} />)}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline define:vars={{ totalPets: pets.length }}>
+    const form = document.querySelector('[data-pet-filter-form]');
+    const selects = Array.from(document.querySelectorAll('[data-filter-select]'));
+    const cards = Array.from(document.querySelectorAll('.pet-card'));
+    const resultMeta = document.querySelector('#pet-results-meta');
+    const emptyState = document.querySelector('#pet-empty-state');
+    const grid = document.querySelector('#pets-grid');
+    const allowed = {
+      type: new Set(['all', 'dog', 'cat', 'other']),
+      age: new Set(['any', 'young', 'adult', 'senior']),
+      size: new Set(['any', 'small', 'medium', 'large']),
+      area: new Set(['all', 'taipei', 'newtaipei', 'taoyuan', 'taichung', 'tainan', 'kaohsiung']),
+    };
+
+    const normalize = (key, value) => {
+      const fallback = key === 'age' || key === 'size' ? 'any' : 'all';
+      const normalized = (value || fallback).toString();
+      return allowed[key].has(normalized) ? normalized : fallback;
+    };
+
+    const state = {
+      type: 'all',
+      age: 'any',
+      size: 'any',
+      area: 'all',
+    };
+
+    const applyStateToControls = () => {
+      selects.forEach((select) => {
+        if (state[select.name] !== undefined) {
+          select.value = state[select.name];
+        }
+      });
+    };
+
+    const updateUrl = () => {
+      const params = new URLSearchParams();
+
+      Object.entries(state).forEach(([key, value]) => {
+        if (value === 'all' || value === 'any') return;
+        params.set(key, value);
+      });
+
+      const nextUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+      window.history.replaceState({}, '', nextUrl);
+    };
+
+    const renderResults = () => {
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        const matchType = state.type === 'all' || card.dataset.pet === state.type;
+        const matchAge = state.age === 'any' || card.dataset.ageGroup === state.age;
+        const matchSize = state.size === 'any' || card.dataset.sizeGroup === state.size;
+        const matchArea = state.area === 'all' || card.dataset.locationKey === state.area;
+        const visible = matchType && matchAge && matchSize && matchArea;
+
+        card.hidden = !visible;
+        card.classList.toggle('is-hidden', !visible);
+
+        if (visible) visibleCount += 1;
+      });
+
+      if (resultMeta) {
+        resultMeta.textContent = visibleCount === totalPets
+          ? `目前顯示全部 ${visibleCount} 隻毛孩`
+          : `找到 ${visibleCount} / ${totalPets} 隻符合條件的毛孩`;
+      }
+
+      if (grid) {
+        grid.dataset.empty = String(visibleCount === 0);
+      }
+
+      if (emptyState) {
+        emptyState.hidden = visibleCount !== 0;
+      }
+    };
+
+    const syncFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      state.type = normalize('type', params.get('type'));
+      state.age = normalize('age', params.get('age'));
+      state.size = normalize('size', params.get('size'));
+      state.area = normalize('area', params.get('area'));
+      applyStateToControls();
+      renderResults();
+    };
+
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      state.type = normalize('type', formData.get('type'));
+      state.age = normalize('age', formData.get('age'));
+      state.size = normalize('size', formData.get('size'));
+      state.area = normalize('area', formData.get('area'));
+      updateUrl();
+      renderResults();
+    });
+
+    selects.forEach((select) => {
+      select.addEventListener('change', () => {
+        state[select.name] = normalize(select.name, select.value);
+        updateUrl();
+        renderResults();
+      });
+    });
+
+    syncFromUrl();
+  </script>
+</BaseLayout>
