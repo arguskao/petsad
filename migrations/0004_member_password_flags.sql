@@ -1,0 +1,1 @@
+ALTER TABLE members ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 1;

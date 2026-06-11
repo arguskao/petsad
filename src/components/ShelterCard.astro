@@ -16,5 +16,9 @@ const { shelter } = Astro.props as Props;
     <span>📍 {shelter.location}</span>
     <span>🐾 {shelter.availablePets} 隻待領養</span>
   </div>
+  <div class="shelter-contact">
+    <span>👤 {shelter.contactName || '未填寫聯絡窗口'}</span>
+    <span>📞 {shelter.contactPhone || '未提供電話'}</span>
+    <span>✉️ {shelter.contactEmail || '未提供 Email'}</span>
+  </div>
 </article>
-

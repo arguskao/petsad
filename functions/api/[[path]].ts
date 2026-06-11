@@ -1,14 +1,35 @@
 import { Hono } from 'hono';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { handle } from 'hono/cloudflare-pages';
 
+import {
+  AUTH_COOKIE_NAME,
+  createSalt,
+  createTemporaryPassword,
+  createSessionToken,
+  hashPassword,
+  normalizeEmail,
+  normalizeName,
+  sessionExpiresAt,
+  type PublicMember,
+  verifyPassword,
+} from '../../src/lib/auth';
+import { assertRegistrationEmailConfig, sendRegistrationEmail } from '../../src/lib/email';
+import { createMember, createMemberSession, getMemberByEmail, getMemberById, getSessionMember, revokeSession, updateMemberPassword } from '../../src/lib/members-db';
 import { createPetApiPayload, findPetById } from '../../src/lib/pets';
-import { getFavoritesFromDatabase } from '../../src/lib/favorites-db';
-import { getSheltersFromDatabase, getStoriesFromDatabase } from '../../src/lib/content-db';
+import { getFavoritePetIdsFromDatabase, getFavoritesFromDatabase } from '../../src/lib/favorites-db';
+import { getSheltersFromDatabase as getContentSheltersFromDatabase, getStoriesFromDatabase } from '../../src/lib/content-db';
+import { getShelterByIdFromDatabase, updateShelterInDatabase } from '../../src/lib/shelters-db';
 import { getPetByIdFromDatabase, getPetsFromDatabase } from '../../src/lib/paws-db';
 
 type ApiEnv = {
   paws?: D1Database;
   ASSETS?: Fetcher;
+  PET_IMAGES?: R2Bucket;
+  MAIL_FROM_ADDRESS?: string;
+  MAIL_FROM_NAME?: string;
+  MAILCHANNELS_API_KEY?: string;
+  MAILCHANNELS_ENDPOINT?: string;
 };
 
 const parseLimit = (value: string | null | undefined, fallback = 10, max = 20) => {
@@ -28,25 +49,159 @@ const parseTagsJson = (value: string | null | undefined) => {
   }
 };
 
+const slugifyPetId = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+
+const ensureUniquePetId = async (db: D1Database, baseId: string) => {
+  const normalizedBase = slugifyPetId(baseId) || `pet-${crypto.randomUUID().slice(0, 8)}`;
+  let candidate = normalizedBase;
+  let suffix = 2;
+
+  while (true) {
+    const existing = await db
+      .prepare(
+        `
+        SELECT id
+        FROM pets
+        WHERE id = ?
+        LIMIT 1
+        `,
+      )
+      .bind(candidate)
+      .first<{ id: string }>();
+
+    if (!existing) return candidate;
+
+    candidate = `${normalizedBase}-${suffix}`;
+    suffix += 1;
+  }
+};
+
+const normalizeOptionalUrl = (value: unknown) => {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (!/^(https?:\/\/|\/)/i.test(trimmed)) return '';
+  return trimmed;
+};
+
+const petImageContentTypes = new Map([
+  ['image/jpeg', 'jpg'],
+  ['image/jpg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+  ['image/gif', 'gif'],
+  ['image/avif', 'avif'],
+]);
+
+const buildPetImageKey = (contentType: string) => {
+  const normalizedType = contentType.toLowerCase().split(';')[0].trim();
+  const extension = petImageContentTypes.get(normalizedType);
+
+  if (!extension) {
+    return '';
+  }
+
+  return `pet-image-${crypto.randomUUID().replace(/-/g, '')}.${extension}`;
+};
+
+const buildPetImageUrl = (key: string) => `/api/pet-images/${encodeURIComponent(key)}`;
+
+const isSecureRequest = (url: string) => new URL(url).protocol === 'https:';
+const isLocalOrigin = (origin: string | null) =>
+  origin === 'http://localhost:4321' || origin === 'http://127.0.0.1:4321';
+
+type FavoriteOwner =
+  | {
+      kind: 'member';
+      ownerId: string;
+      member: PublicMember;
+    }
+  | {
+      kind: 'anonymous';
+      ownerId: string;
+      clientId: string;
+    };
+
+const getFavoriteOwner = async (c: any, fallbackClientId = '') => {
+  const token = getCookie(c, AUTH_COOKIE_NAME) || '';
+  const member = await getSessionMember(c.env.paws, token);
+
+  if (member) {
+    return {
+      kind: 'member',
+      ownerId: member.id,
+      member,
+    } satisfies FavoriteOwner;
+  }
+
+  const clientId = fallbackClientId.trim();
+  if (!clientId) {
+    return null;
+  }
+
+  return {
+    kind: 'anonymous',
+    ownerId: clientId,
+    clientId,
+  } satisfies FavoriteOwner;
+};
+
 const app = new Hono<{ Bindings: ApiEnv }>().basePath('/api');
+
+app.use('*', async (c, next) => {
+  const origin = c.req.header('Origin');
+
+  if (origin && isLocalOrigin(origin)) {
+    c.header('Access-Control-Allow-Origin', origin);
+    c.header('Access-Control-Allow-Credentials', 'true');
+    c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type');
+    c.header('Vary', 'Origin');
+  }
+
+  if (c.req.method === 'OPTIONS') {
+    return c.body(null, 204);
+  }
+
+  await next();
+});
 
 app.get('/', (c) =>
   c.json({
     name: 'PawsHome API',
-    version: '1.1.0',
+    version: '1.2.0',
     dataSource: 'Cloudflare D1 paws',
     endpoints: [
+      'GET /api/auth/me',
+      'POST /api/auth/register',
+      'POST /api/auth/login',
+      'POST /api/auth/logout',
       'GET /api/pets',
       'GET /api/pets/:id',
       'GET /api/stories',
       'GET /api/shelters',
       'GET /api/favorites',
+      'POST /api/favorites/merge',
       'GET /api/admin/summary',
       'GET /api/admin/adoptions',
       'GET /api/admin/adoptions/:id',
       'GET /api/admin/pets',
       'GET /api/admin/pets/:id',
+      'POST /api/admin/pet-images',
+      'GET /api/pet-images/:key',
       'PATCH /api/admin/pets/:id',
+      'GET /api/admin/stories',
+      'GET /api/admin/stories/:id',
+      'PATCH /api/admin/stories/:id',
+      'GET /api/admin/shelters',
+      'PATCH /api/admin/shelters/:id',
       'GET /api/admin/favorites',
       'PATCH /api/admin/adoptions/:id',
       'POST /api/adoptions',
@@ -55,6 +210,260 @@ app.get('/', (c) =>
     ],
   }),
 );
+
+app.get('/auth/me', async (c) => {
+  const token = getCookie(c, AUTH_COOKIE_NAME) || '';
+  const member = await getSessionMember(c.env.paws, token);
+
+  if (!member) {
+    return c.json({ ok: false, message: '尚未登入。' }, 401);
+  }
+
+  return c.json({
+    ok: true,
+    member,
+  });
+});
+
+app.post('/auth/register', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const email = typeof body?.email === 'string' ? normalizeEmail(body.email) : '';
+  const name = typeof body?.name === 'string' ? normalizeName(body.name) : '';
+
+  if (!email || !name) {
+    return c.json({ ok: false, message: 'name、email 為必填欄位。' }, 400);
+  }
+
+  if (name.length < 2) {
+    return c.json({ ok: false, message: '姓名至少需要 2 個字元。' }, 400);
+  }
+
+  try {
+    assertRegistrationEmailConfig({
+      to: email,
+      name,
+      temporaryPassword: 'placeholder',
+      loginUrl: new URL('/auth/login', c.req.url).toString(),
+      fromEmail: c.env.MAIL_FROM_ADDRESS,
+      fromName: c.env.MAIL_FROM_NAME,
+      mailChannelsApiKey: c.env.MAILCHANNELS_API_KEY,
+      mailChannelsEndpoint: c.env.MAILCHANNELS_ENDPOINT,
+    });
+  } catch (error) {
+    return c.json(
+      {
+        ok: false,
+        message: error instanceof Error ? error.message : '會員寄信設定尚未完成。',
+      },
+      503,
+    );
+  }
+
+  const existing = await getMemberByEmail(db, email);
+  if (existing) {
+    return c.json({ ok: false, message: '這個 Email 已經註冊過了。' }, 409);
+  }
+
+  const memberId = crypto.randomUUID();
+  const temporaryPassword = createTemporaryPassword();
+  const passwordSalt = createSalt();
+  const passwordHash = await hashPassword(temporaryPassword, passwordSalt);
+  const member = await createMember(db, {
+    id: memberId,
+    email,
+    name,
+    passwordHash,
+    passwordSalt,
+    mustChangePassword: true,
+  });
+
+  if (!member) {
+    return c.json({ ok: false, message: '建立會員失敗。' }, 500);
+  }
+
+  const loginUrl = new URL('/auth/login', c.req.url).toString();
+
+  try {
+    await sendRegistrationEmail({
+      to: email,
+      name,
+      temporaryPassword,
+      loginUrl,
+      fromEmail: c.env.MAIL_FROM_ADDRESS,
+      fromName: c.env.MAIL_FROM_NAME,
+      mailChannelsApiKey: c.env.MAILCHANNELS_API_KEY,
+      mailChannelsEndpoint: c.env.MAILCHANNELS_ENDPOINT,
+    });
+  } catch (error) {
+    await db
+      .prepare(
+        `
+        DELETE FROM members
+        WHERE id = ?
+        `,
+      )
+      .bind(memberId)
+      .run();
+
+    return c.json(
+      {
+        ok: false,
+        message: error instanceof Error ? error.message : '寄信失敗，請稍後再試。',
+      },
+      502,
+    );
+  }
+
+  return c.json({
+    ok: true,
+    message: '註冊完成，請到 Email 收取密碼。',
+    member: {
+      id: member.id,
+      email: member.email,
+      name: member.name,
+      createdAt: member.created_at,
+      updatedAt: member.updated_at,
+      mustChangePassword: true,
+    },
+  }, 201);
+});
+
+app.post('/auth/login', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const email = typeof body?.email === 'string' ? normalizeEmail(body.email) : '';
+  const password = typeof body?.password === 'string' ? body.password : '';
+
+  if (!email || !password) {
+    return c.json({ ok: false, message: 'email 與 password 為必填欄位。' }, 400);
+  }
+
+  const member = await getMemberByEmail(db, email);
+  if (!member) {
+    return c.json({ ok: false, message: '帳號或密碼錯誤。' }, 401);
+  }
+
+  const isValid = await verifyPassword(password, member.password_salt, member.password_hash);
+  if (!isValid) {
+    return c.json({ ok: false, message: '帳號或密碼錯誤。' }, 401);
+  }
+
+  const token = createSessionToken();
+  await createMemberSession(db, {
+    id: crypto.randomUUID(),
+    memberId: member.id,
+    token,
+    expiresAt: sessionExpiresAt(),
+  });
+
+  setCookie(c, AUTH_COOKIE_NAME, token, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure: isSecureRequest(c.req.url),
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  return c.json({
+    ok: true,
+    message: '登入成功。',
+    member: {
+      id: member.id,
+      email: member.email,
+      name: member.name,
+      createdAt: member.created_at,
+      updatedAt: member.updated_at,
+      mustChangePassword: Boolean(member.must_change_password),
+    },
+  });
+});
+
+app.patch('/auth/password', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const token = getCookie(c, AUTH_COOKIE_NAME) || '';
+  const member = await getSessionMember(db, token);
+
+  if (!member) {
+    return c.json({ ok: false, message: '尚未登入。' }, 401);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const currentPassword = typeof body?.currentPassword === 'string' ? body.currentPassword : '';
+  const nextPassword = typeof body?.nextPassword === 'string' ? body.nextPassword : '';
+
+  if (!currentPassword || !nextPassword) {
+    return c.json({ ok: false, message: 'currentPassword 與 nextPassword 為必填欄位。' }, 400);
+  }
+
+  if (nextPassword.length < 8) {
+    return c.json({ ok: false, message: '新密碼至少需要 8 個字元。' }, 400);
+  }
+
+  const memberRecord = await getMemberById(db, member.id);
+  if (!memberRecord) {
+    return c.json({ ok: false, message: '找不到會員資料。' }, 404);
+  }
+
+  const currentValid = await verifyPassword(currentPassword, memberRecord.password_salt, memberRecord.password_hash);
+  if (!currentValid) {
+    return c.json({ ok: false, message: '目前密碼不正確。' }, 401);
+  }
+
+  const nextSalt = createSalt();
+  const nextHash = await hashPassword(nextPassword, nextSalt);
+  const updated = await updateMemberPassword(db, {
+    memberId: member.id,
+    passwordHash: nextHash,
+    passwordSalt: nextSalt,
+  });
+
+  return c.json({
+    ok: true,
+    message: '密碼已更新。',
+    member: updated
+      ? {
+          id: updated.id,
+          email: updated.email,
+          name: updated.name,
+          createdAt: updated.created_at,
+          updatedAt: updated.updated_at,
+          mustChangePassword: false,
+        }
+      : member,
+  });
+});
+
+app.post('/auth/logout', async (c) => {
+  const db = c.env.paws;
+  const token = getCookie(c, AUTH_COOKIE_NAME) || '';
+
+  if (db && token) {
+    await revokeSession(db, token);
+  }
+
+  deleteCookie(c, AUTH_COOKIE_NAME, { path: '/' });
+
+  return c.json({
+    ok: true,
+    message: '已登出。',
+  });
+});
 
 app.get('/pets', async (c) => {
   const pets = await getPetsFromDatabase(c.env.paws);
@@ -92,7 +501,7 @@ app.get('/stories', async (c) => {
 });
 
 app.get('/shelters', async (c) => {
-  const shelters = await getSheltersFromDatabase(c.env.paws);
+  const shelters = await getContentSheltersFromDatabase(c.env.paws);
   return c.json({
     total: shelters.length,
     results: shelters,
@@ -100,12 +509,90 @@ app.get('/shelters', async (c) => {
 });
 
 app.get('/favorites', async (c) => {
-  const clientId = c.req.query('clientId')?.trim() ?? '';
-  const favorites = await getFavoritesFromDatabase(c.env.paws, clientId);
+  const owner = await getFavoriteOwner(c, c.req.query('clientId') ?? '');
+  const favorites = await getFavoritesFromDatabase(c.env.paws, owner?.ownerId ?? '');
 
   return c.json({
+    scope: owner?.kind ?? 'anonymous',
     total: favorites.length,
     results: favorites,
+  });
+});
+
+app.post('/favorites/merge', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const token = getCookie(c, AUTH_COOKIE_NAME) || '';
+  const member = await getSessionMember(db, token);
+
+  if (!member) {
+    return c.json({ ok: false, message: '尚未登入。' }, 401);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const clientId = typeof body?.clientId === 'string' ? body.clientId.trim() : '';
+
+  if (!clientId || clientId === member.id) {
+    return c.json({
+      ok: true,
+      message: '沒有需要合併的匿名收藏。',
+      mergedCount: 0,
+      total: (await getFavoritesFromDatabase(db, member.id)).length,
+    });
+  }
+
+  const anonymousPetIds = await getFavoritePetIdsFromDatabase(db, clientId);
+  if (!anonymousPetIds.length) {
+    return c.json({
+      ok: true,
+      message: '沒有需要合併的匿名收藏。',
+      mergedCount: 0,
+      total: (await getFavoritesFromDatabase(db, member.id)).length,
+    });
+  }
+
+  const memberPetIds = new Set(await getFavoritePetIdsFromDatabase(db, member.id));
+  let mergedCount = 0;
+
+  for (const petId of anonymousPetIds) {
+    if (memberPetIds.has(petId)) continue;
+
+    await db
+      .prepare(
+        `
+        INSERT INTO favorites (
+          id,
+          pet_id,
+          user_id
+        ) VALUES (?, ?, ?)
+        `,
+      )
+      .bind(crypto.randomUUID(), petId, member.id)
+      .run();
+
+    memberPetIds.add(petId);
+    mergedCount += 1;
+  }
+
+  await db
+    .prepare(
+      `
+      DELETE FROM favorites
+      WHERE user_id = ?
+      `,
+    )
+    .bind(clientId)
+    .run();
+
+  return c.json({
+    ok: true,
+    message: mergedCount > 0 ? '匿名收藏已合併到會員帳號。' : '沒有可合併的匿名收藏。',
+    mergedCount,
+    total: memberPetIds.size,
   });
 });
 
@@ -121,6 +608,8 @@ app.get('/admin/summary', async (c) => {
       `
       SELECT
         (SELECT COUNT(*) FROM pets) AS total_pets,
+        (SELECT COUNT(*) FROM stories) AS total_stories,
+        (SELECT COUNT(*) FROM shelters) AS total_shelters,
         (SELECT COUNT(*) FROM adoption_requests) AS total_adoptions,
         (SELECT COUNT(*) FROM adoption_requests WHERE status = 'pending') AS pending_adoptions,
         (SELECT COUNT(*) FROM favorites) AS total_favorites,
@@ -129,6 +618,8 @@ app.get('/admin/summary', async (c) => {
     )
     .first<{
       total_pets: number;
+      total_stories: number;
+      total_shelters: number;
       total_adoptions: number;
       pending_adoptions: number;
       total_favorites: number;
@@ -139,10 +630,181 @@ app.get('/admin/summary', async (c) => {
     ok: true,
     summary: {
       totalPets: summary?.total_pets ?? 0,
+      totalStories: summary?.total_stories ?? 0,
+      totalShelters: summary?.total_shelters ?? 0,
       totalAdoptions: summary?.total_adoptions ?? 0,
       pendingAdoptions: summary?.pending_adoptions ?? 0,
       totalFavorites: summary?.total_favorites ?? 0,
       favoriteUsers: summary?.favorite_users ?? 0,
+    },
+  });
+});
+
+app.get('/admin/shelters', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const shelters = await getContentSheltersFromDatabase(db);
+
+  return c.json({
+    ok: true,
+    total: shelters.length,
+    results: shelters,
+  });
+});
+
+app.get('/admin/stories', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const stories = await getStoriesFromDatabase(db);
+
+  return c.json({
+    ok: true,
+    total: stories.length,
+    results: stories,
+  });
+});
+
+app.get('/admin/stories/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+
+  if (!id) {
+    return c.json({ ok: false, message: '成功故事 ID 為必填欄位。' }, 400);
+  }
+
+  const story = await db
+    .prepare(
+      `
+      SELECT
+        id,
+        title,
+        quote,
+        author,
+        date,
+        avatar,
+        emoji,
+        sort_order
+      FROM stories
+      WHERE id = ?
+      LIMIT 1
+      `,
+    )
+    .bind(id)
+    .first<{
+      id: string;
+      title: string;
+      quote: string;
+      author: string;
+      date: string;
+      avatar: string;
+      emoji: string;
+      sort_order: number;
+    }>();
+
+  if (!story) {
+    return c.json({ ok: false, message: '找不到指定的成功故事。' }, 404);
+  }
+
+  return c.json({
+    ok: true,
+    story: {
+      id: story.id,
+      title: story.title,
+      quote: story.quote,
+      author: story.author,
+      date: story.date,
+      avatar: story.avatar,
+      emoji: story.emoji,
+      sortOrder: story.sort_order,
+    },
+  });
+});
+
+app.patch('/admin/stories/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+  const body = await c.req.json().catch(() => null);
+
+  const title = typeof body?.title === 'string' ? body.title.trim() : '';
+  const quote = typeof body?.quote === 'string' ? body.quote.trim() : '';
+  const author = typeof body?.author === 'string' ? body.author.trim() : '';
+  const date = typeof body?.date === 'string' ? body.date.trim() : '';
+  const avatar = typeof body?.avatar === 'string' ? body.avatar.trim() : '';
+  const emoji = typeof body?.emoji === 'string' ? body.emoji.trim() : '';
+  const sortOrder = Number(body?.sortOrder);
+
+  if (!id) {
+    return c.json({ ok: false, message: '成功故事 ID 為必填欄位。' }, 400);
+  }
+
+  if (!title || !quote || !author || !date || !avatar || !emoji || !Number.isFinite(sortOrder)) {
+    return c.json({ ok: false, message: '請確認成功故事欄位皆已填寫。' }, 400);
+  }
+
+  const existing = await db
+    .prepare(
+      `
+      SELECT id
+      FROM stories
+      WHERE id = ?
+      LIMIT 1
+      `,
+    )
+    .bind(id)
+    .first<{ id: string }>();
+
+  if (!existing) {
+    return c.json({ ok: false, message: '找不到指定的成功故事。' }, 404);
+  }
+
+  await db
+    .prepare(
+      `
+      UPDATE stories
+      SET
+        title = ?,
+        quote = ?,
+        author = ?,
+        date = ?,
+        avatar = ?,
+        emoji = ?,
+        sort_order = ?
+      WHERE id = ?
+      `,
+    )
+    .bind(title, quote, author, date, avatar, emoji, Math.floor(sortOrder), id)
+    .run();
+
+  return c.json({
+    ok: true,
+    message: '成功故事已更新。',
+    story: {
+      id,
+      title,
+      quote,
+      author,
+      date,
+      avatar,
+      emoji,
+      sortOrder: Math.floor(sortOrder),
     },
   });
 });
@@ -351,12 +1013,254 @@ app.get('/admin/pets', async (c) => {
       location: pet.location,
       locationKey: pet.locationKey,
       emoji: pet.emoji,
+      coverImageUrl: pet.coverImageUrl || '',
       status: pet.status ?? 'available',
       badge: pet.badge,
       description: pet.description,
       story: pet.story,
       tags: pet.tags,
     })),
+  });
+});
+
+app.post('/admin/pets', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const body = await c.req.json().catch(() => null);
+
+  const allowedSpecies = new Set(['dog', 'cat', 'other']);
+  const allowedGender = new Set(['male', 'female']);
+  const allowedAgeGroup = new Set(['young', 'adult', 'senior']);
+  const allowedSizeGroup = new Set(['small', 'medium', 'large']);
+  const allowedLocationKey = new Set(['taipei', 'newtaipei', 'taoyuan', 'taichung', 'tainan', 'kaohsiung']);
+  const allowedBadgeTone = new Set(['urgent', 'new', 'default']);
+  const allowedStatus = new Set(['available', 'hidden', 'adopted']);
+
+  const idInput = typeof body?.id === 'string' ? body.id.trim() : '';
+  const name = typeof body?.name === 'string' ? body.name.trim() : '';
+  const species = typeof body?.species === 'string' ? body.species.trim() : '';
+  const gender = typeof body?.gender === 'string' ? body.gender.trim() : '';
+  const age = typeof body?.age === 'string' ? body.age.trim() : '';
+  const ageGroup = typeof body?.ageGroup === 'string' ? body.ageGroup.trim() : '';
+  const size = typeof body?.size === 'string' ? body.size.trim() : '';
+  const sizeGroup = typeof body?.sizeGroup === 'string' ? body.sizeGroup.trim() : '';
+  const location = typeof body?.location === 'string' ? body.location.trim() : '';
+  const locationKey = typeof body?.locationKey === 'string' ? body.locationKey.trim() : '';
+  const emoji = typeof body?.emoji === 'string' ? body.emoji.trim() : '';
+  const coverImageUrl = normalizeOptionalUrl(body?.coverImageUrl);
+  const status = typeof body?.status === 'string' ? body.status.trim() : '';
+  const badgeLabel = typeof body?.badgeLabel === 'string' ? body.badgeLabel.trim() : '';
+  const badgeTone = typeof body?.badgeTone === 'string' ? body.badgeTone.trim() : '';
+  const description = typeof body?.description === 'string' ? body.description.trim() : '';
+  const story = typeof body?.story === 'string' ? body.story.trim() : '';
+  const tagsInput = Array.isArray(body?.tags) ? (body.tags as unknown[]) : [];
+  const tags = tagsInput.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean);
+  const sortOrder = Number(body?.sortOrder);
+
+  if (
+    !name ||
+    !allowedSpecies.has(species) ||
+    !allowedGender.has(gender) ||
+    !age ||
+    !allowedAgeGroup.has(ageGroup) ||
+    !size ||
+    !allowedSizeGroup.has(sizeGroup) ||
+    !location ||
+    !allowedLocationKey.has(locationKey) ||
+    !emoji ||
+    !allowedStatus.has(status) ||
+    !description ||
+    !story ||
+    !Number.isFinite(sortOrder)
+  ) {
+    return c.json(
+      {
+        ok: false,
+        message: '請確認毛孩基本資料皆已填寫，且分類欄位符合規格。',
+      },
+      400,
+    );
+  }
+
+  if (badgeTone && !allowedBadgeTone.has(badgeTone)) {
+    return c.json(
+      {
+        ok: false,
+        message: 'badgeTone 只接受 urgent、new、default。',
+      },
+      400,
+    );
+  }
+
+  const id = await ensureUniquePetId(db, idInput || name);
+  const existing = await db
+    .prepare(
+      `
+      SELECT id
+      FROM pets
+      WHERE id = ?
+      LIMIT 1
+      `,
+    )
+    .bind(id)
+    .first<{ id: string }>();
+
+  if (existing) {
+    return c.json({ ok: false, message: '毛孩 ID 已存在。' }, 409);
+  }
+
+  await db
+    .prepare(
+      `
+      INSERT INTO pets (
+        id,
+        name,
+        species,
+        gender,
+        age,
+        age_group,
+        size,
+        size_group,
+        location,
+        location_key,
+        emoji,
+        cover_image_url,
+        status,
+        badge_label,
+        badge_tone,
+        description,
+        story,
+        tags_json,
+        sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      id,
+      name,
+      species,
+      gender,
+      age,
+      ageGroup,
+      size,
+      sizeGroup,
+      location,
+      locationKey,
+      emoji,
+      coverImageUrl || null,
+      status,
+      badgeLabel || null,
+      badgeLabel ? (badgeTone || 'default') : null,
+      description,
+      story,
+      JSON.stringify(tags),
+      Math.floor(sortOrder),
+    )
+    .run();
+
+  const pet = await getPetByIdFromDatabase(db, id);
+
+  return c.json({
+    ok: true,
+    message: '毛孩已建立並上架。',
+    pet: pet ?? {
+      id,
+      name,
+      species,
+      gender,
+      age,
+      ageGroup,
+      size,
+      sizeGroup,
+      location,
+      locationKey,
+      emoji,
+      coverImageUrl,
+      status,
+      badge: badgeLabel ? { label: badgeLabel, tone: badgeTone || 'default' } : undefined,
+      description,
+      story,
+      tags,
+      sortOrder: Math.floor(sortOrder),
+    },
+  });
+});
+
+app.post('/admin/pet-images', async (c) => {
+  const bucket = c.env.PET_IMAGES;
+
+  if (!bucket) {
+    return c.json({ ok: false, message: 'R2 binding PET_IMAGES is not available.' }, 503);
+  }
+
+  const formData = await c.req.formData().catch(() => null);
+  const fileValue = formData?.get('file') ?? formData?.get('image');
+
+  if (!(fileValue instanceof File)) {
+    return c.json({ ok: false, message: '請先選擇要上傳的圖片。' }, 400);
+  }
+
+  if (!fileValue.size) {
+    return c.json({ ok: false, message: '上傳的圖片不能是空檔案。' }, 400);
+  }
+
+  const normalizedContentType = fileValue.type.toLowerCase().split(';')[0].trim();
+  const key = buildPetImageKey(normalizedContentType);
+
+  if (!key) {
+    return c.json({ ok: false, message: '只支援 JPG、PNG、WebP、GIF、AVIF 圖片。' }, 400);
+  }
+
+  const cacheControl = 'public, max-age=31536000, immutable';
+
+  await bucket.put(key, await fileValue.arrayBuffer(), {
+    httpMetadata: {
+      contentType: normalizedContentType,
+      cacheControl,
+    },
+    customMetadata: {
+      originalName: fileValue.name || 'pet-image',
+    },
+  });
+
+  return c.json({
+    ok: true,
+    message: '圖片已上傳。',
+    key,
+    url: buildPetImageUrl(key),
+  });
+});
+
+app.get('/pet-images/:key', async (c) => {
+  const bucket = c.env.PET_IMAGES;
+
+  if (!bucket) {
+    return c.json({ ok: false, message: 'R2 binding PET_IMAGES is not available.' }, 503);
+  }
+
+  const key = c.req.param('key').trim();
+
+  if (!key) {
+    return c.json({ ok: false, message: '圖片 key 為必填欄位。' }, 400);
+  }
+
+  const object = await bucket.get(key);
+
+  if (!object) {
+    return c.json({ ok: false, message: '找不到指定的圖片。' }, 404);
+  }
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  headers.set('ETag', object.httpEtag);
+
+  return new Response(object.body, {
+    headers,
   });
 });
 
@@ -388,6 +1292,7 @@ app.get('/admin/pets/:id', async (c) => {
         location,
         location_key,
         emoji,
+        cover_image_url,
         status,
         badge_label,
         badge_tone,
@@ -413,6 +1318,7 @@ app.get('/admin/pets/:id', async (c) => {
       location: string;
       location_key: 'taipei' | 'newtaipei' | 'taoyuan' | 'taichung' | 'tainan' | 'kaohsiung';
       emoji: string;
+      cover_image_url: string | null;
       status: 'available' | 'hidden' | 'adopted' | null;
       badge_label: string | null;
       badge_tone: 'urgent' | 'new' | 'default' | null;
@@ -440,6 +1346,7 @@ app.get('/admin/pets/:id', async (c) => {
       location: result.location,
       locationKey: result.location_key,
       emoji: result.emoji,
+      coverImageUrl: result.cover_image_url ?? '',
       status: result.status ?? 'available',
       badge: result.badge_label ? { label: result.badge_label, tone: result.badge_tone ?? 'default' } : undefined,
       description: result.description,
@@ -447,6 +1354,49 @@ app.get('/admin/pets/:id', async (c) => {
       tags: parseTagsJson(result.tags_json),
       sortOrder: result.sort_order,
     },
+  });
+});
+
+app.patch('/admin/shelters/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+  const body = await c.req.json().catch(() => null);
+
+  if (!id) {
+    return c.json({ ok: false, message: '收容所 ID 為必填欄位。' }, 400);
+  }
+
+  const existing = await getShelterByIdFromDatabase(db, id);
+  if (!existing) {
+    return c.json({ ok: false, message: '找不到指定的收容所。' }, 404);
+  }
+
+  const updated = await updateShelterInDatabase(db, {
+    id,
+    icon: body?.icon,
+    name: body?.name,
+    description: body?.description,
+    location: body?.location,
+    availablePets: body?.availablePets,
+    contactName: body?.contactName,
+    contactPhone: body?.contactPhone,
+    contactEmail: body?.contactEmail,
+    sortOrder: body?.sortOrder,
+  });
+
+  if (!updated) {
+    return c.json({ ok: false, message: '更新收容所資料失敗。' }, 500);
+  }
+
+  return c.json({
+    ok: true,
+    message: '收容所資料已更新。',
+    shelter: updated,
   });
 });
 
@@ -478,6 +1428,7 @@ app.patch('/admin/pets/:id', async (c) => {
   const location = typeof body?.location === 'string' ? body.location.trim() : '';
   const locationKey = typeof body?.locationKey === 'string' ? body.locationKey.trim() : '';
   const emoji = typeof body?.emoji === 'string' ? body.emoji.trim() : '';
+  const coverImageUrl = normalizeOptionalUrl(body?.coverImageUrl);
   const status = typeof body?.status === 'string' ? body.status.trim() : '';
   const badgeLabel = typeof body?.badgeLabel === 'string' ? body.badgeLabel.trim() : '';
   const badgeTone = typeof body?.badgeTone === 'string' ? body.badgeTone.trim() : '';
@@ -557,6 +1508,7 @@ app.patch('/admin/pets/:id', async (c) => {
         location = ?,
         location_key = ?,
         emoji = ?,
+        cover_image_url = ?,
         status = ?,
         badge_label = ?,
         badge_tone = ?,
@@ -578,6 +1530,7 @@ app.patch('/admin/pets/:id', async (c) => {
       location,
       locationKey,
       emoji,
+      coverImageUrl || null,
       status,
       badgeLabel || null,
       badgeLabel ? (badgeTone || 'default') : null,
@@ -604,6 +1557,7 @@ app.patch('/admin/pets/:id', async (c) => {
       location,
       locationKey,
       emoji,
+      coverImageUrl,
       status,
       badge: badgeLabel ? { label: badgeLabel, tone: badgeTone || 'default' } : undefined,
       description,
@@ -852,11 +1806,23 @@ app.post('/favorites', async (c) => {
   const petId = typeof body?.petId === 'string' ? body.petId.trim() : '';
   const clientId = typeof body?.clientId === 'string' ? body.clientId.trim() : '';
 
-  if (!petId || !clientId) {
+  if (!petId) {
     return c.json(
       {
         ok: false,
-        message: 'petId 與 clientId 為必填欄位。',
+        message: 'petId 為必填欄位。',
+      },
+      400,
+    );
+  }
+
+  const owner = await getFavoriteOwner(c, clientId);
+
+  if (!owner) {
+    return c.json(
+      {
+        ok: false,
+        message: '會員登入後可直接收藏，匿名模式則需要 clientId。',
       },
       400,
     );
@@ -883,7 +1849,7 @@ app.post('/favorites', async (c) => {
       WHERE pet_id = ? AND user_id = ?
       `,
     )
-    .bind(petId, clientId)
+    .bind(petId, owner.ownerId)
     .run();
 
   await db
@@ -896,7 +1862,7 @@ app.post('/favorites', async (c) => {
       ) VALUES (?, ?, ?)
       `,
     )
-    .bind(favoriteId, petId, clientId)
+    .bind(favoriteId, petId, owner.ownerId)
     .run();
 
   return c.json(
@@ -907,7 +1873,8 @@ app.post('/favorites', async (c) => {
         id: favoriteId,
         petId,
         petName: pet.name,
-        clientId,
+        ownerId: owner.ownerId,
+        ownerType: owner.kind,
       },
     },
     201,
@@ -925,11 +1892,13 @@ app.delete('/favorites', async (c) => {
   const petId = typeof body?.petId === 'string' ? body.petId.trim() : '';
   const clientId = typeof body?.clientId === 'string' ? body.clientId.trim() : '';
 
-  if (!clientId) {
+  const owner = await getFavoriteOwner(c, clientId);
+
+  if (!owner) {
     return c.json(
       {
         ok: false,
-        message: 'clientId 為必填欄位。',
+        message: '會員登入後可直接清空收藏，匿名模式則需要 clientId。',
       },
       400,
     );
@@ -943,7 +1912,7 @@ app.delete('/favorites', async (c) => {
         WHERE pet_id = ? AND user_id = ?
         `,
       )
-      .bind(petId, clientId)
+      .bind(petId, owner.ownerId)
       .run();
   } else {
     await db
@@ -953,7 +1922,7 @@ app.delete('/favorites', async (c) => {
         WHERE user_id = ?
         `,
       )
-      .bind(clientId)
+      .bind(owner.ownerId)
       .run();
   }
 
@@ -961,7 +1930,8 @@ app.delete('/favorites', async (c) => {
     ok: true,
     message: petId ? '收藏已移除。' : '收藏已全部清空。',
     favorite: {
-      clientId,
+      ownerId: owner.ownerId,
+      ownerType: owner.kind,
       ...(petId ? { petId } : {}),
     },
   });

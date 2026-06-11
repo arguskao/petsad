@@ -6,10 +6,8 @@ import SectionHeader from '../components/SectionHeader.astro';
 import SearchBar from '../components/SearchBar.astro';
 import PetCard from '../components/PetCard.astro';
 import StoryCard from '../components/StoryCard.astro';
-import ShelterCard from '../components/ShelterCard.astro';
 import { pets } from '../data/pets';
 import { stories } from '../data/stories';
-import { shelters } from '../data/shelters';
 ---
 
 <BaseLayout>
@@ -151,7 +149,7 @@ import { shelters } from '../data/shelters';
           description="看看這些幸福的家庭如何與毛孩相遇"
         />
 
-        <div class="stories-grid">
+        <div class="stories-grid" id="home-stories-grid" aria-live="polite">
           {stories.map((story) => <StoryCard story={story} />)}
         </div>
       </div>
@@ -162,12 +160,14 @@ import { shelters } from '../data/shelters';
         <SectionHeader
           eyebrow="Partners"
           title="我們的合作夥伴"
-          description="與全台 156 家收容所和中途之家合作"
+          description="與全台收容所和中途之家合作，資料會從 D1 同步讀取。"
         />
 
-        <div class="shelters-grid">
-          {shelters.map((shelter) => <ShelterCard shelter={shelter} />)}
+        <div class="search-card fade-in is-visible">
+          <p class="pet-description" id="home-shelters-meta">正在讀取合作夥伴資料...</p>
         </div>
+
+        <div class="shelters-grid" id="home-shelters-grid" aria-live="polite"></div>
 
         <div class="section-footer">
           <a class="btn-outline" href="/shelters">查看所有合作夥伴</a>
@@ -194,4 +194,90 @@ import { shelters } from '../data/shelters';
   </main>
 
   <Footer />
+
+  <script is:inline>
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const sheltersGrid = document.querySelector('#home-shelters-grid');
+    const sheltersMeta = document.querySelector('#home-shelters-meta');
+    const storiesGrid = document.querySelector('#home-stories-grid');
+
+    const renderShelterCard = (shelter) => `
+      <article class="shelter-card fade-in is-visible" id="${escapeHtml(shelter.id)}" tabindex="0">
+        <div class="shelter-icon">${escapeHtml(shelter.icon)}</div>
+        <h3>${escapeHtml(shelter.name)}</h3>
+        <p>${escapeHtml(shelter.description)}</p>
+        <div class="shelter-stats">
+          <span>📍 ${escapeHtml(shelter.location)}</span>
+          <span>🐾 ${escapeHtml(String(shelter.availablePets ?? 0))} 隻待領養</span>
+        </div>
+        <div class="shelter-contact">
+          <span>👤 ${escapeHtml(shelter.contactName || '未填寫聯絡窗口')}</span>
+          <span>📞 ${escapeHtml(shelter.contactPhone || '未提供電話')}</span>
+          <span>✉️ ${escapeHtml(shelter.contactEmail || '未提供 Email')}</span>
+        </div>
+      </article>
+    `;
+
+    const renderStoryCard = (story) => `
+      <article class="story-card fade-in is-visible" id="${escapeHtml(story.id)}">
+        <div class="story-image">
+          <div class="story-placeholder">
+            <span class="story-emoji">${escapeHtml(story.emoji)}</span>
+          </div>
+        </div>
+        <div class="story-content">
+          <h3>${escapeHtml(story.title)}</h3>
+          <p class="story-text">「${escapeHtml(story.quote)}」</p>
+          <div class="story-author">
+            <div class="author-avatar">${escapeHtml(story.avatar)}</div>
+            <div class="author-info">
+              <div class="author-name">${escapeHtml(story.author)}</div>
+              <div class="author-date">${escapeHtml(story.date)}</div>
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+
+    const loadHomeStories = async () => {
+      if (!storiesGrid) return;
+
+      const response = await fetch('/api/stories');
+      const data = await response.json();
+      const stories = Array.isArray(data.results) ? data.results : [];
+
+      if (stories.length) {
+        storiesGrid.innerHTML = stories.map(renderStoryCard).join('');
+      }
+    };
+
+    const loadHomeShelters = async () => {
+      if (!sheltersGrid) return;
+
+      const response = await fetch('/api/shelters');
+      const data = await response.json();
+      const shelters = Array.isArray(data.results) ? data.results : [];
+
+      if (sheltersMeta) {
+        const totalPets = shelters.reduce((sum, shelter) => sum + Number(shelter.availablePets || 0), 0);
+        sheltersMeta.textContent = shelters.length
+          ? `目前共有 ${shelters.length} 家合作夥伴，合計 ${totalPets} 隻待領養毛孩資訊。`
+          : '目前尚無合作夥伴資料。';
+      }
+
+      sheltersGrid.innerHTML = shelters.map(renderShelterCard).join('');
+    };
+
+    loadHomeStories().catch(() => {});
+    loadHomeShelters().catch(() => {
+      if (sheltersMeta) sheltersMeta.textContent = '合作夥伴資料載入失敗，請稍後再試。';
+    });
+  </script>
 </BaseLayout>

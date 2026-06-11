@@ -19,7 +19,9 @@ import SectionHeader from '../components/SectionHeader.astro';
 
         <div class="search-card fade-in is-visible">
           <h3>收藏清單</h3>
-          <p class="pet-description">這裡會顯示你收藏過的毛孩。收藏資料目前先透過匿名 clientId 同步到 D1。</p>
+          <p class="pet-description">
+            這裡會顯示你收藏過的毛孩。登入後會同步到會員帳號，未登入時則保留在這台裝置。
+          </p>
           <div class="search-filters" style="margin-top: 1rem;">
             <div class="filter-group">
               <label for="favorite-search">搜尋收藏</label>
@@ -69,6 +71,7 @@ import SectionHeader from '../components/SectionHeader.astro';
     const searchInput = document.querySelector('#favorite-search');
     const sortSelect = document.querySelector('#favorite-sort');
     let favoriteItems = [];
+    let favoriteScope = 'anonymous';
 
     const escapeHtml = (value) =>
       String(value)
@@ -131,7 +134,7 @@ import SectionHeader from '../components/SectionHeader.astro';
             ${pet.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
           </div>
 
-          <a class="btn-primary full-width" href="/pets/${escapeHtml(pet.id)}">了解更多</a>
+          <a class="btn-primary full-width" href="/pets?id=${encodeURIComponent(pet.id)}">了解更多</a>
         </div>
       </article>
     `;
@@ -141,9 +144,11 @@ import SectionHeader from '../components/SectionHeader.astro';
       window.PawsHomeFavorites?.syncButtons();
     };
 
-    const getClientId = () => {
-      return window.PawsHomeFavorites?.getClientId?.() || '';
-    };
+    const getFavoriteIdentity = () => window.PawsHomeFavorites?.getIdentity?.() || null;
+    const getFavoriteRequestUrl = () => window.PawsHomeFavorites?.getFavoriteRequestUrl?.() || '/api/favorites';
+    const getFavoriteRequestBody = (petId = '') => window.PawsHomeFavorites?.getFavoriteRequestBody?.(petId) || {};
+    const getFavoriteSet = () => window.PawsHomeFavorites?.getFavoriteSet?.() || new Set();
+    const setFavoriteSet = (set) => window.PawsHomeFavorites?.setFavoriteSet?.(set);
 
     const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -187,11 +192,12 @@ import SectionHeader from '../components/SectionHeader.astro';
       if (!grid) return;
 
       const visibleItems = filterFavorites(sortFavorites(favoriteItems));
+      const scopeLabel = favoriteScope === 'member' ? '會員收藏' : '這台裝置的收藏';
       grid.innerHTML = visibleItems.map((item) => renderPetCard(item)).join('');
       meta.textContent = favoriteItems.length === 0
-        ? '你目前還沒有收藏任何毛孩。'
+        ? `你目前還沒有任何${scopeLabel}。`
         : visibleItems.length === favoriteItems.length
-          ? `你已收藏 ${favoriteItems.length} 隻毛孩`
+          ? `你已收藏 ${favoriteItems.length} 隻毛孩，資料已同步到${scopeLabel}。`
           : `找到 ${visibleItems.length} / ${favoriteItems.length} 隻符合條件的收藏`;
 
       if (emptyState) {
@@ -215,18 +221,13 @@ import SectionHeader from '../components/SectionHeader.astro';
     const loadFavorites = async () => {
       if (!grid) return;
 
-      const clientId = getClientId();
-      if (!clientId) {
-        grid.innerHTML = '';
-        if (meta) meta.textContent = '尚未建立收藏識別碼。';
-        if (emptyState) emptyState.hidden = false;
-        return;
-      }
-
+      await window.PawsHomeFavorites?.ready?.();
+      const identity = getFavoriteIdentity();
+      favoriteScope = identity?.kind || 'anonymous';
       grid.innerHTML = '';
       grid.innerHTML = '<p class="pet-results-meta">正在載入收藏清單...</p>';
 
-      const response = await fetch(`/api/favorites?clientId=${encodeURIComponent(clientId)}`);
+      const response = await fetch(getFavoriteRequestUrl());
       const data = await response.json();
       favoriteItems = Array.isArray(data.results) ? data.results : [];
 
@@ -234,14 +235,12 @@ import SectionHeader from '../components/SectionHeader.astro';
     };
 
     const clearFavorites = async () => {
-      const clientId = getClientId();
-      if (!clientId) return;
+      await window.PawsHomeFavorites?.ready?.();
 
-      const favoriteSet = window.PawsHomeFavorites?.getFavoriteSet?.() || new Set();
+      const favoriteSet = getFavoriteSet();
       const snapshot = new Set(favoriteSet);
 
-      window.localStorage.setItem('paws-favorites', JSON.stringify([]));
-      syncButtons();
+      setFavoriteSet(new Set());
 
       try {
         const response = await fetch('/api/favorites', {
@@ -249,7 +248,7 @@ import SectionHeader from '../components/SectionHeader.astro';
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ clientId }),
+          body: JSON.stringify(getFavoriteRequestBody()),
         });
 
         const data = await response.json().catch(() => ({}));
@@ -261,35 +260,42 @@ import SectionHeader from '../components/SectionHeader.astro';
         renderFavorites();
         window.PawsHomeUI?.showNotification?.(data.message || '收藏已全部清空。');
       } catch (error) {
-        window.localStorage.setItem('paws-favorites', JSON.stringify([...snapshot]));
-        syncButtons();
+        setFavoriteSet(snapshot);
         throw error;
       }
     };
 
-    clearButton?.addEventListener('click', () => {
-      clearFavorites().catch(() => {
+    const init = () => {
+      clearButton?.addEventListener('click', () => {
+        clearFavorites().catch(() => {
+          if (meta) {
+            meta.textContent = '清空收藏失敗，請稍後再試。';
+          }
+        });
+      });
+
+      searchInput?.addEventListener('input', () => {
+        renderFavorites();
+      });
+
+      sortSelect?.addEventListener('change', () => {
+        renderFavorites();
+      });
+
+      loadFavorites().catch(() => {
         if (meta) {
-          meta.textContent = '清空收藏失敗，請稍後再試。';
+          meta.textContent = '收藏清單載入失敗，請稍後再試。';
+        }
+        if (emptyState) {
+          emptyState.hidden = false;
         }
       });
-    });
+    };
 
-    searchInput?.addEventListener('input', () => {
-      renderFavorites();
-    });
-
-    sortSelect?.addEventListener('change', () => {
-      renderFavorites();
-    });
-
-    loadFavorites().catch(() => {
-      if (meta) {
-        meta.textContent = '收藏清單載入失敗，請稍後再試。';
-      }
-      if (emptyState) {
-        emptyState.hidden = false;
-      }
-    });
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init, { once: true });
+    } else {
+      init();
+    }
   </script>
 </BaseLayout>

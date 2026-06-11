@@ -49,8 +49,8 @@ const toPet = (row: FavoritePetRow) => ({
   story: row.story,
 });
 
-export const getFavoritesFromDatabase = async (db: D1Database | undefined, clientId: string) => {
-  if (!db || !clientId) {
+export const getFavoritesFromDatabase = async (db: D1Database | undefined, ownerId: string) => {
+  if (!db || !ownerId) {
     return [];
   }
 
@@ -83,7 +83,7 @@ export const getFavoritesFromDatabase = async (db: D1Database | undefined, clien
       ORDER BY favorites.created_at DESC, pets.sort_order ASC, pets.name ASC
       `,
     )
-    .bind(clientId)
+    .bind(ownerId)
     .all<FavoritePetRow>();
 
   return result.results.map((row) => ({
@@ -91,4 +91,24 @@ export const getFavoritesFromDatabase = async (db: D1Database | undefined, clien
     favoriteCreatedAt: row.favorite_created_at,
     pet: toPet(row),
   }));
+};
+
+export const getFavoritePetIdsFromDatabase = async (db: D1Database | undefined, ownerId: string) => {
+  if (!db || !ownerId) {
+    return [];
+  }
+
+  const result = await db
+    .prepare(
+      `
+      SELECT pet_id
+      FROM favorites
+      WHERE user_id = ?
+      ORDER BY created_at ASC
+      `,
+    )
+    .bind(ownerId)
+    .all<{ pet_id: string }>();
+
+  return result.results.map((row) => row.pet_id);
 };

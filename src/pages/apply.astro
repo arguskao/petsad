@@ -19,6 +19,14 @@ import SectionHeader from '../components/SectionHeader.astro';
           description="選擇你想認識的毛孩，填寫資料後直接送出申請。"
         />
 
+        <div class="search-card fade-in is-visible" id="apply-member-card">
+          <h3>會員快速帶入</h3>
+          <p class="pet-description" id="apply-member-message">
+            如果你已登入，我們會自動帶入姓名與 Email，讓申請更快一點。
+          </p>
+          <div class="pet-details" id="apply-member-details" hidden></div>
+        </div>
+
         <div class="search-card fade-in is-visible">
           <h3>申請資訊</h3>
           <p class="pet-description">請先選擇毛孩，再填寫聯絡方式與簡短說明，我們會把資料送進 D1。</p>
@@ -104,6 +112,8 @@ import SectionHeader from '../components/SectionHeader.astro';
     const summary = document.querySelector('#apply-summary');
     const status = document.querySelector('#form-status');
     const submitButton = document.querySelector('#submit-button');
+    const memberMessage = document.querySelector('#apply-member-message');
+    const memberDetails = document.querySelector('#apply-member-details');
     const params = new URLSearchParams(window.location.search);
     const presetPetId = params.get('pet') || '';
     let selectedPet = null;
@@ -165,6 +175,38 @@ import SectionHeader from '../components/SectionHeader.astro';
 
       petSelect.value = pets.some((pet) => pet.id === presetPetId) ? presetPetId : (pets[0]?.id || '');
       await loadPet(petSelect.value);
+    };
+
+    const hydrateMember = async () => {
+      const response = await fetch('/api/auth/me');
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.member) {
+        if (memberMessage) {
+          memberMessage.textContent = '目前尚未登入，請自行填寫姓名與 Email。';
+        }
+        if (memberDetails) {
+          memberDetails.hidden = true;
+        }
+        return;
+      }
+
+      const member = data.member;
+      if (memberMessage) {
+        memberMessage.textContent = `已登入為 ${member.name}，我們會先幫你帶入姓名與 Email。`;
+      }
+      if (memberDetails) {
+        memberDetails.hidden = false;
+        memberDetails.innerHTML = `
+          <span class="detail-item">👤 ${escapeHtml(member.name)}</span>
+          <span class="detail-item">✉️ ${escapeHtml(member.email)}</span>
+        `;
+      }
+
+      const nameInput = document.querySelector('#fullName');
+      const emailInput = document.querySelector('#email');
+      if (nameInput && !nameInput.value) nameInput.value = member.name || '';
+      if (emailInput && !emailInput.value) emailInput.value = member.email || '';
     };
 
     petSelect?.addEventListener('change', () => {
@@ -243,6 +285,12 @@ import SectionHeader from '../components/SectionHeader.astro';
       }
       if (status) {
         status.textContent = '毛孩清單載入失敗，請稍後再試。';
+      }
+    });
+
+    hydrateMember().catch(() => {
+      if (memberMessage) {
+        memberMessage.textContent = '會員資料載入失敗，請直接填寫表單。';
       }
     });
   </script>

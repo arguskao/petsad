@@ -8,7 +8,7 @@ interface Props {
 const { story } = Astro.props as Props;
 ---
 
-<article class="story-card fade-in">
+<article class="story-card fade-in" id={story.id}>
   <div class="story-image">
     <div class="story-placeholder">
       <span class="story-emoji">{story.emoji}</span>
@@ -26,4 +26,3 @@ const { story } = Astro.props as Props;
     </div>
   </div>
 </article>
-

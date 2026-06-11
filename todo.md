@@ -25,21 +25,33 @@
 - `/api/admin/adoptions/:id` 已可用
 - `/api/admin/pets/:id` 已可用
 - `/api/admin/pets` 已可用
+- `/api/admin/stories`、`/api/admin/stories/:id` 已可用
+- `/api/auth/me`、`/api/auth/register`、`/api/auth/login`、`/api/auth/logout` 已可用
+- `/api/auth/register` 已改成姓名 + Email 註冊，並串接 MailChannels Email API
 - `POST /api/adoptions` 已寫入 `adoption_requests`
-- 收藏先走 localStorage，並同步到 `POST/DELETE /api/favorites`
+- 收藏已可會員同步，登入後會自動合併匿名收藏，未登入時仍保留匿名 localStorage 與 D1 同步
 - `/pets` 頁已直接改成讀 `/api/pets`
 - `/pets/[id]` 頁已直接讀 `/api/pets/:id`
 - `/apply` 頁已接上申請流程，送出後會導到結果頁
+- `/auth/login`、`/auth/register`、`/member` 已建立
+- 註冊流程已改成由 Email 寄送臨時密碼
+- 正式站寄信仍需完成 `MAILCHANNELS_API_KEY`、`MAIL_FROM_ADDRESS` 與寄件網域 DNS 設定
 - `/favorites` 頁已可查看收藏清單
 - `/favorites` 頁已可清空收藏
 - `/favorites` 頁已可搜尋與排序收藏
 - 首頁、列表頁與導覽列已顯示收藏數量提示
+- 導覽列與會員頁已保留會員入口，首頁已移除多餘會員提示卡
+- `/shelters`、`/admin/shelters` 已接上 D1 收容所資料管理
+- `shelters` 已補聯絡資訊欄位，前台與後台會同步讀取
+- `/apply` 已可依登入會員自動帶入姓名與 Email
 - `/admin` 最小版管理後台已建立，且後台頁已設定 `noindex`
 - `/admin` 已可核准 / 拒絕申請
 - `/admin/pets` 已可查看毛孩清單
 - `/admin/pets` 已可查看單筆毛孩詳情
+- `/admin/pets` 已可新增毛孩，上架流程第一版可用，封面圖已支援網址與圖片上傳
 - `/admin/pets` 已可編輯毛孩資料
 - `/admin/pets` 已可下架 / 標記已領養 / 恢復上架
+- `/admin/stories` 已可查看與編輯成功故事內容
 - `/admin/adoptions` 已可查看單筆申請詳情
 - `pnpm run build` 已通過
 
@@ -78,10 +90,15 @@
 
 這一段是接下來最值得做、也最能直接增加產品完成度的工作。
 
-- [ ] 把收藏功能接成會員版
-  - 目前已完成 localStorage 與 D1 同步
-  - 下一步再接會員資料表
-  - 再補收藏清單頁
+- [x] 會員系統最小版
+  - 註冊 / 登入 / 登出
+  - session 或 token 的身分識別
+  - 先保留匿名收藏資料，之後再做遷移
+- [x] 把收藏功能接成會員版
+  - 登入後收藏會綁到會員 session
+  - 舊匿名收藏會自動合併到會員帳號
+  - 未登入時仍保留匿名 localStorage 與 D1 同步
+  - 收藏清單頁會依身分載入對應收藏
 - [x] 補齊申請流程的使用體驗
   - 已補成功頁
   - 已補基本驗證與送出後導向
@@ -89,10 +106,27 @@
 - [x] 讓 `/pets`、`/pets/[id]` 與 `/apply` 的 UI 更一致
   - 共用更完整的資料顯示區塊
   - 提高在手機上的可讀性
+- [x] 會員入口整合
+  - 導覽列保留會員中心入口
+  - 首頁已移除多餘會員提示卡
+- [x] 收容所資料管理
+  - 收容所前台改成讀 D1 API
+  - 後台可檢視與編輯收容所資料
+  - 補上聯絡資訊欄位
+- [x] 申請流程的小升級
+  - 會員登入時會自動帶入姓名與 Email
+  - 讓申請表單更快完成
 - [x] 補齊部署設定
   - 已把 `BaseLayout` 做成可配置 canonical / image / noindex
   - admin 頁已避免被搜尋引擎收錄
   - 公開頁之後可逐頁補 canonical 與社群圖
+- [ ] 完成會員寄信正式設定
+  - 先記錄，之後再處理
+  - 目前正式站註冊會因缺少寄信設定而回 `503`
+  - 設定 `MAILCHANNELS_API_KEY`
+  - 設定 `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME`
+  - 在自有網域補上 SPF 與 `_mailchannels` TXT
+  - 補完後再重新測試 `/api/auth/register`
 
 ## 中期目標
 
@@ -124,7 +158,7 @@
   - 可切換毛孩狀態
   - 可從後台切到前台毛孩頁
   - 可直接前往申請表單
-- [ ] 建立收容所資料管理
+- [x] 建立收容所資料管理
   - 列出合作夥伴
   - 顯示可領養數量
   - 維護聯絡資訊
@@ -133,17 +167,12 @@
 
 這一段是平台化之後才做的事。
 
-- [ ] 會員系統
-  - 註冊
-  - 登入
-  - 個人收藏清單
-  - 申請紀錄
-- [ ] 寵物上架流程
-  - 圖片上傳
-  - 狀態管理
-  - 編輯與下架
+- [x] 寵物上架流程
+  - 已支援圖片上傳
+  - 已支援狀態管理
+  - 已支援編輯與下架
 - [ ] 更完整的內容管理
-  - 成功故事
+  - [x] 成功故事
   - 常見問題
   - 領養須知
   - 頁面文案管理
@@ -156,7 +185,6 @@
 
 這一段是目前先放著，不代表接下來一定立刻做。
 
-- 會員系統
 - 寵物上架流程
 - 更完整的內容管理
 - 監控與分析
@@ -174,7 +202,7 @@
 
 ## 建議順序
 
-1. 先把收藏功能補起來
-2. 再把申請流程做完整
-3. 接著做後台最小版本
-4. 最後補會員、SEO、監控與營運工具
+1. 先做會員系統最小版
+2. 再把收藏功能接到會員
+3. 接著做申請與後台的細部擴充
+4. 最後補 SEO、監控與營運工具

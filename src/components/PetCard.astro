@@ -18,9 +18,13 @@ const { pet } = Astro.props as Props;
 >
   <div class="pet-image">
     {pet.badge && <div class={`pet-badge ${pet.badge.tone}`}>{pet.badge.label}</div>}
-    <div class="pet-placeholder">
-      <span class="pet-emoji">{pet.emoji}</span>
-    </div>
+    {pet.coverImageUrl ? (
+      <img class="pet-cover-image" src={pet.coverImageUrl} alt={`${pet.name} 的封面圖片`} loading="lazy" />
+    ) : (
+      <div class="pet-placeholder">
+        <span class="pet-emoji">{pet.emoji}</span>
+      </div>
+    )}
     <button
       class="favorite-btn"
       type="button"
@@ -58,6 +62,6 @@ const { pet } = Astro.props as Props;
       {pet.tags.map((tag) => <span class="tag">{tag}</span>)}
     </div>
 
-    <a class="btn-primary full-width" href={`/pets/${pet.id}`}>了解更多</a>
+    <a class="btn-primary full-width" href={`/pets?id=${encodeURIComponent(pet.id)}`}>了解更多</a>
   </div>
 </article>

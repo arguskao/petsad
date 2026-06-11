@@ -28,7 +28,13 @@ const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0,
       <div class="container">
         <div class="pet-detail-layout fade-in is-visible" data-pet-id={pet.id}>
           <div class="search-card pet-detail-card">
-            <div class="pet-detail-avatar" aria-hidden="true" id="pet-avatar">{pet.emoji}</div>
+            <div class="pet-detail-avatar" aria-hidden="true" id="pet-avatar">
+              {pet.coverImageUrl ? (
+                <img class="pet-avatar-image" src={pet.coverImageUrl} alt={`${pet.name} 的封面圖片`} />
+              ) : (
+                <span class="pet-avatar-emoji">{pet.emoji}</span>
+              )}
+            </div>
             <div class="pet-detail-header">
               <div class="pet-header">
                 <h1 id="pet-name">{pet.name}</h1>
@@ -130,9 +136,28 @@ const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0,
     const applyLink = document.querySelector('#apply-link');
     const favoriteButton = document.querySelector('[data-favorite-button]');
 
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
     const setText = (node, value) => {
       if (!node) return;
       node.textContent = value;
+    };
+
+    const renderAvatar = (pet) => {
+      if (!petAvatar) return;
+
+      if (pet.coverImageUrl) {
+        petAvatar.innerHTML = `<img class="pet-avatar-image" src="${escapeHtml(pet.coverImageUrl)}" alt="${escapeHtml(pet.name || '毛孩')} 的封面圖片" />`;
+        return;
+      }
+
+      petAvatar.innerHTML = `<span class="pet-avatar-emoji">${escapeHtml(pet.emoji || '🐾')}</span>`;
     };
 
     const setBadge = (pet) => {
@@ -169,7 +194,7 @@ const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0,
     const showUnavailable = (message) => {
       if (detailRoot) detailRoot.dataset.unavailable = 'true';
       if (petName) petName.textContent = '這隻毛孩目前已下架';
-      if (petAvatar) petAvatar.textContent = '🐾';
+      if (petAvatar) petAvatar.innerHTML = '<span class="pet-avatar-emoji">🐾</span>';
       if (petGender) petGender.textContent = '已下架';
       if (petBadge) petBadge.hidden = true;
       if (petDescription) petDescription.textContent = message;
@@ -218,7 +243,7 @@ const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0,
         }
         const pet = data.pet;
         setText(petName, pet.name);
-        setText(petAvatar, pet.emoji);
+        renderAvatar(pet);
         setText(petGender, pet.gender === 'male' ? '♂' : '♀');
         if (petGender) {
           petGender.className = `pet-gender ${pet.gender}`;

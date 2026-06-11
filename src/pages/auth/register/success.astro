@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+
+const email = Astro.url.searchParams.get('email')?.trim() || '';
+---
+
+<BaseLayout
+  title="註冊已完成 - PawsHome"
+  description="你的會員註冊已完成，請到 Email 收取密碼。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <div class="search-card fade-in is-visible" style="max-width: 760px; margin: 0 auto;">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <p class="section-eyebrow">Member</p>
+            <h1 style="margin: 0.4rem 0 0.8rem;">註冊已完成</h1>
+            <p class="pet-description">請到 Email 收取密碼，收到後就可以直接登入。</p>
+          </div>
+
+          <div class="pet-details">
+            {email ? <span class="detail-item">✉️ 已寄送到：{email}</span> : null}
+            <span class="detail-item">🔑 如果信件還沒到，請先檢查垃圾郵件匣。</span>
+          </div>
+
+          <div class="hero-actions">
+            <a class="btn-primary" href="/auth/login">前往登入</a>
+            <a class="btn-outline" href="/pets">先逛毛孩</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

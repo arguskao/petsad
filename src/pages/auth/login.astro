@@ -1,0 +1,101 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+const next = Astro.url.searchParams.get('next')?.trim() || '/member';
+---
+
+<BaseLayout
+  title="會員登入 - PawsHome"
+  description="登入你的 PawsHome 會員帳號。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <div class="search-card fade-in is-visible" style="max-width: 760px; margin: 0 auto;">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <p class="section-eyebrow">Member</p>
+            <h1 style="margin: 0.4rem 0 0.8rem;">會員登入</h1>
+            <p class="pet-description">輸入 Email 和密碼登入，登入後可以查看會員狀態與後續功能。</p>
+          </div>
+
+          <div class="auth-tabs" role="tablist" aria-label="會員入口">
+            <a class="auth-tab is-active" aria-current="page" href="/auth/login">登入</a>
+            <a class="auth-tab" href="/auth/register">註冊</a>
+          </div>
+
+          <form class="apply-form" id="login-form" style="margin-top: 1.25rem;">
+            <div class="filter-group">
+              <label for="email">Email</label>
+              <input id="email" name="email" class="filter-select" type="email" autocomplete="email" required />
+            </div>
+
+            <div class="filter-group">
+              <label for="password">密碼</label>
+              <input id="password" name="password" class="filter-select" type="password" autocomplete="current-password" required />
+            </div>
+
+            <p class="pet-results-meta" id="login-status" aria-live="polite"></p>
+
+            <div class="hero-actions">
+              <button class="btn-primary" type="submit" id="login-button">登入</button>
+              <a class="btn-outline" href="/auth/register">註冊</a>
+              <a class="btn-outline" href="/pets">先逛毛孩</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline define:vars={{ next }}>
+    const form = document.querySelector('#login-form');
+    const status = document.querySelector('#login-status');
+    const button = document.querySelector('#login-button');
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!button || !form) return;
+      if (!form.reportValidity()) return;
+
+      button.disabled = true;
+      button.textContent = '登入中...';
+
+      const formData = new FormData(form);
+      const payload = {
+        email: String(formData.get('email') || ''),
+        password: String(formData.get('password') || ''),
+      };
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || '登入失敗');
+        }
+
+        if (status) status.textContent = result.message || '登入成功。';
+        window.location.assign(next || '/member');
+      } catch (error) {
+        if (status) status.textContent = error instanceof Error ? error.message : '登入失敗，請稍後再試。';
+      } finally {
+        button.disabled = false;
+        button.textContent = '登入';
+      }
+    });
+  </script>
+</BaseLayout>

@@ -193,6 +193,34 @@ img {
   width: 100%;
 }
 
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-bottom: 1px solid rgba(139, 108, 87, 0.18);
+  margin-top: 1rem;
+}
+
+.auth-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1rem 1rem;
+  color: var(--text-gray);
+  font-weight: 800;
+  border-bottom: 2px solid transparent;
+  transition: color 180ms ease, border-color 180ms ease;
+}
+
+.auth-tab.is-active {
+  color: var(--text-dark);
+  border-color: var(--primary);
+}
+
+.auth-tab:hover {
+  color: var(--primary);
+}
+
 .favorite-prompt {
   margin: 1rem 0 0;
   color: var(--text-gray);
@@ -497,6 +525,14 @@ img {
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.85);
   font-size: 2rem;
+  overflow: hidden;
+}
+
+.admin-detail-pet-cover {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .admin-detail-pet h3 {
@@ -633,6 +669,18 @@ main {
   border-radius: 28px;
   background: linear-gradient(135deg, rgba(255, 184, 77, 0.22), rgba(255, 107, 107, 0.16));
   font-size: clamp(5rem, 12vw, 7rem);
+  overflow: hidden;
+}
+
+.pet-avatar-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.pet-avatar-emoji {
+  line-height: 1;
 }
 
 .pet-detail-header {
@@ -944,6 +992,13 @@ main {
   min-height: 18rem;
 }
 
+.pet-cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .pet-emoji,
 .story-emoji {
   font-size: clamp(3.5rem, 8vw, 5rem);
@@ -1178,6 +1233,16 @@ main {
   gap: 0.5rem;
   color: var(--text-gray);
   font-size: 0.95rem;
+}
+
+.shelter-contact {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(223, 230, 233, 0.9);
+  color: var(--text-gray);
+  font-size: 0.92rem;
 }
 
 .cta-content {

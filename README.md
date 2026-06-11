@@ -1,253 +1,161 @@
-這東西很棒
-https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
-從這裡可以發揮
+# PawsHome - 寵物領養平台
 
-# PawsHome - 寵物領養平台 Landing Page
+PawsHome 是一個使用 Astro v6、Cloudflare Pages Functions 與 D1 打造的寵物領養平台。
+目前主線已從舊版靜態頁面，移轉到 `src/` 底下的正式頁面與 API；舊版靜態首頁仍保留在 `public/` 作為參考。
 
-溫馨感人的寵物領養平台著陸頁，使用溫暖色調與動態互動效果，使用 Cloudflare Pages 部署。
+## 目前功能
 
-目前專案正在從純靜態 `public/` 版本，遷移到 Astro v6 架構。新的頁面骨架在 `src/`，舊版靜態檔案會暫時保留作為參考。
+- 首頁、寵物列表、寵物詳情、成功故事、合作夥伴、申請表單
+- 會員註冊 / 登入 / 登出
+- 收藏清單與會員同步
+- 會員登入後首頁快速入口
+- 申請表單自動帶入會員姓名與 Email
+- 收容所前台與後台管理
+- 管理後台的申請、毛孩與收容所維護
 
-## 功能特色
+## 技術堆疊
 
-- 🐾 溫暖親切的視覺設計
-- 💝 動態寵物卡片展示
-- 🔍 智慧搜尋篩選預覽
-- 📖 感人的成功領養故事
-- 🏥 收容所合作夥伴展示
-- 📱 完全響應式設計
-- ⚡ 極速載入（Cloudflare Edge）
-- 🎨 豐富的互動動畫
-- 🔧 易於客製化
-
-## 設計特色
-
-### 溫暖色調
-- 主色：珊瑚紅 (#FF6B6B)
-- 輔色：溫暖橙 (#FFB84D)
-- 點綴色：青綠色 (#4ECDC4)
-- 背景：溫暖米色系
-
-### 動態互動
-- 懸浮動畫的寵物卡片
-- 愛心收藏功能
-- 漂浮的腳印裝飾
-- 平滑滾動與淡入效果
-- 數字計數動畫
-
-### 情感設計
-- 可愛的 Emoji 圖示
-- 溫馨的文案與故事
-- 親切的圓角設計
-- 柔和的陰影效果
+- 前端：Astro v6
+- API：Cloudflare Pages Functions + Hono
+- 資料庫：Cloudflare D1
+- 綁定名稱：`paws`
 
 ## 專案結構
 
-```
+```txt
 .
-├── astro.config.mjs    # Astro 設定
-├── public/             # 舊版靜態首頁（過渡參考）
+├── public/             # 舊版靜態首頁與參考資源
 ├── src/
-│   ├── components/     # 可重用元件
-│   ├── data/           # 寵物 / 故事 / 合作夥伴資料
-│   ├── layouts/        # 共用版型
-│   ├── pages/          # Astro 頁面
-│   └── styles/         # 全域樣式
-├── static/             # Astro publicDir（過渡時保持空目錄）
+│   ├── components/
+│   ├── data/
+│   ├── layouts/
+│   ├── lib/
+│   ├── pages/
+│   └── styles/
+├── functions/api/      # Pages Functions API
+├── migrations/         # D1 migrations
 ├── package.json
-├── tsconfig.json
-└── wrangler.toml       # Cloudflare 設定
+├── astro.config.mjs
+└── wrangler.toml
 ```
-
-## 頁面區塊
-
-1. **Hero 區**：主視覺 + 統計數據 + 漂浮腳印
-2. **搜尋預覽**：快速篩選功能展示
-3. **精選寵物**：動態寵物卡片網格（含愛心收藏）
-4. **領養流程**：簡單四步驟說明
-5. **成功故事**：溫馨的領養故事分享
-6. **合作夥伴**：收容所與中途之家
-7. **CTA 區**：強力的領養呼籲
-8. **Footer**：完整的頁尾資訊
 
 ## 快速開始
 
-### 1. 安裝依賴
+### 安裝依賴
 
 ```bash
 npm install
 ```
 
-### 2. 本地開發
+### 本地開發
 
 ```bash
 npm run dev
 ```
 
-預設會啟動 Astro v6 開發伺服器。
-
-如果你要驗證完整的 Cloudflare Pages + Functions 流程：
+如果你要模擬完整的 Cloudflare Pages + API 流程，先建置再啟動 Pages dev：
 
 ```bash
-npm run build:astro
+npm run build
 npm run dev:pages
 ```
 
-### 3. 部署到 Cloudflare Pages
+### 正式部署
 
 ```bash
+npm run build
 npm run deploy
 ```
 
-Astro 版本與正式 API 路線已經是預設路徑；如果你要先看靜態舊版：
+如果你只是想看舊版靜態頁面，可使用：
 
 ```bash
 npm run deploy:legacy
 ```
 
-## 客製化指南
+## 主要頁面
 
-### 修改品牌資訊
+- `/`：首頁
+- `/pets`：寵物列表
+- `/pets/:id`：寵物詳情
+- `/stories`：成功故事
+- `/shelters`：合作夥伴
+- `/apply`：領養申請
+- `/apply/success`：申請結果頁
+- `/auth/login`：會員登入
+- `/auth/register`：會員註冊
+- `/member`：會員中心
+- `/favorites`：收藏清單
+- `/admin`：管理後台
+- `/admin/pets`：毛孩管理
+- `/admin/adoptions`：申請審核
+- `/admin/shelters`：收容所管理
 
-舊版靜態頁可以在 `public/index.html` 裡修改；Astro 版建議優先改這些檔案：
-- `src/data/site.ts`：網站名稱、標題、描述、導覽列
-- `src/pages/index.astro`：首頁文案與區塊內容
-- `src/components/Header.astro` / `src/components/Footer.astro`：導覽與頁尾
-- `src/layouts/BaseLayout.astro`：meta 標籤與共用 `<head>`
+## API 參考
 
-### 調整顏色主題
+以下是目前前端實際會使用的主要路由：
 
-舊版靜態頁在 `public/styles.css`；Astro 版請改 `src/styles/global.css` 的 `:root` 區塊：
+- `GET /api/auth/me`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `PATCH /api/auth/password`
+- `GET /api/pets`
+- `GET /api/pets/:id`
+- `GET /api/stories`
+- `GET /api/shelters`
+- `GET /api/favorites`
+- `POST /api/favorites`
+- `DELETE /api/favorites`
+- `POST /api/favorites/merge`
+- `POST /api/adoptions`
+- `GET /api/admin/summary`
+- `GET /api/admin/adoptions`
+- `GET /api/admin/adoptions/:id`
+- `PATCH /api/admin/adoptions/:id`
+- `GET /api/admin/pets`
+- `GET /api/admin/pets/:id`
+- `PATCH /api/admin/pets/:id`
+- `GET /api/admin/shelters`
+- `PATCH /api/admin/shelters/:id`
+- `GET /api/admin/favorites`
 
-```css
-:root {
-    --primary: #FF6B6B;        /* 主色（珊瑚紅）*/
-    --secondary: #FFB84D;      /* 輔色（溫暖橙）*/
-    --accent: #4ECDC4;         /* 點綴色（青綠）*/
-    --warm-bg: #FFF5F0;        /* 溫暖背景 */
-}
-```
+## D1 與資料更新
 
-### 添加真實寵物照片
+這個專案已經綁定 Cloudflare D1 `paws`。
 
-替換 `.pet-emoji` 佔位符：
-1. 在 `public/images/pets/` 目錄添加寵物照片，或改放到 Astro 的 `static/`
-2. 修改 `src/components/PetCard.astro` 的 `.pet-placeholder`
-3. 如果要改成真實照片，優先把資料放進 `src/data/pets.ts`
-4. 建議使用 WebP 格式以優化載入速度
-
-### 連接 D1 資料庫
-
-這個專案已經先建立 Cloudflare D1 `paws`，並且在 `wrangler.toml` 綁定成同名 `paws` binding。
-
-如果你有新增 migration，記得套用到遠端資料庫：
+如果你有更新 migration，先套用到遠端資料庫：
 
 ```bash
 npx -y wrangler@4.92.0 d1 migrations apply paws --remote
 ```
 
-本地開發如果要模擬 D1，也可以用 Pages dev 搭配 `--d1` 綁定。
+本機開發若要同步 D1，可先跑建置，再用 `npm run dev:pages`。
 
-### 連接後端 API
+## 會員寄信設定
 
-在前端中連接你的寵物 API：
+會員註冊目前會透過 MailChannels Email API 寄出臨時密碼。
 
-```javascript
-// 搜尋寵物
-async function searchPets(filters) {
-    const response = await fetch('/api/pets/search', {
-        method: 'POST',
-        body: JSON.stringify(filters)
-    });
-    return await response.json();
-}
+正式站至少要設定：
 
-// 收藏寵物
-async function favoritePet(petId) {
-    const response = await fetch(`/api/pets/${petId}/favorite`, {
-        method: 'POST'
-    });
-    return await response.json();
-}
-```
+- `MAILCHANNELS_API_KEY`
+- `MAIL_FROM_ADDRESS`
+- `MAIL_FROM_NAME`
+- 寄件網域 SPF：`include:relay.mailchannels.net`
+- 寄件網域 `_mailchannels` TXT 授權紀錄
 
-### 連接後端 API
+`MAIL_FROM_ADDRESS` 請使用你自己的正式網域信箱，例如 `hello@yourdomain.com`。  
+不要直接使用 `pages.dev` 當寄件地址，因為無法完成 MailChannels 所需的網域驗證。
 
-在前端互動事件處理器中添加你的 API 呼叫：
+## 客製化
 
-```javascript
-button.addEventListener('click', async (e) => {
-    // 替換為你的 API endpoint
-    const response = await fetch('/api/signup', {
-        method: 'POST',
-        body: JSON.stringify({ email: userEmail })
-    });
-});
-```
+- `src/data/site.ts`：網站名稱、標題、描述與導覽
+- `src/pages/index.astro`：首頁內容
+- `src/components/Header.astro` / `src/components/Footer.astro`：導覽與頁尾
+- `src/layouts/BaseLayout.astro`：canonical、社群圖與 `noindex`
+- `src/styles/global.css`：全域樣式
 
-## 進階功能
+## 備註
 
-### 添加 Cloudflare Functions
-
-在 `functions/` 目錄建立 API endpoints：
-
-```typescript
-// functions/api/contact.ts
-import { Hono } from 'hono'
-
-const app = new Hono()
-
-app.post('/api/contact', async (c) => {
-    const body = await c.req.json()
-    // 處理聯絡表單
-    return c.json({ success: true })
-})
-
-export default app
-```
-
-### 整合分析工具
-
-在 `public/index.html` 的 `<head>` 中添加：
-
-```html
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
-
-<!-- Cloudflare Web Analytics -->
-<script defer src='https://static.cloudflareinsights.com/beacon.min.js' 
-        data-cf-beacon='{"token": "YOUR_TOKEN"}'></script>
-```
-
-## 效能優化
-
-- 所有靜態資源透過 Cloudflare CDN 分發
-- CSS 和 JS 已優化，無需額外打包
-- 圖片建議使用 WebP 格式
-- 啟用 Cloudflare 的自動壓縮和快取
-
-## SEO 優化建議
-
-1. 更新 meta 標籤（已包含基礎設定）
-2. 添加 Open Graph 標籤用於社群分享
-3. 建立 `robots.txt` 和 `sitemap.xml`
-4. 使用語意化 HTML 標籤
-5. 確保所有圖片都有 alt 屬性
-
-## 瀏覽器支援
-
-- Chrome（最新版）
-- Firefox（最新版）
-- Safari（最新版）
-- Edge（最新版）
-
-## 授權
-
-MIT License
-
-## 技術支援
-
-如有問題，請查看：
-- [Cloudflare Pages 文件](https://developers.cloudflare.com/pages/)
-- [Hono 文件](https://hono.dev/)
-# petsad
+- `public/` 保留的是舊版靜態首頁參考，不是目前正式路線
+- 目前正式部署路線是 Cloudflare Pages + D1 + Pages Functions

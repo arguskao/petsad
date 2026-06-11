@@ -17,12 +17,54 @@ import { stories } from '../data/stories';
           title="成功故事"
           description="看看毛孩與家庭相遇後的溫馨故事。"
         />
-        <div class="stories-grid">
+        <div class="stories-grid" id="stories-grid" aria-live="polite">
           {stories.map((story) => <StoryCard story={story} />)}
         </div>
       </div>
     </section>
   </main>
   <Footer />
-</BaseLayout>
 
+  <script is:inline>
+    const storiesGrid = document.querySelector('#stories-grid');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const renderStoryCard = (story) => `
+      <article class="story-card fade-in is-visible" id="${escapeHtml(story.id)}">
+        <div class="story-image">
+          <div class="story-placeholder">
+            <span class="story-emoji">${escapeHtml(story.emoji)}</span>
+          </div>
+        </div>
+        <div class="story-content">
+          <h3>${escapeHtml(story.title)}</h3>
+          <p class="story-text">「${escapeHtml(story.quote)}」</p>
+          <div class="story-author">
+            <div class="author-avatar">${escapeHtml(story.avatar)}</div>
+            <div class="author-info">
+              <div class="author-name">${escapeHtml(story.author)}</div>
+              <div class="author-date">${escapeHtml(story.date)}</div>
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+
+    fetch('/api/stories')
+      .then((response) => response.json())
+      .then((data) => {
+        const stories = Array.isArray(data.results) ? data.results : [];
+        if (storiesGrid && stories.length) {
+          storiesGrid.innerHTML = stories.map(renderStoryCard).join('');
+        }
+      })
+      .catch(() => {});
+  </script>
+</BaseLayout>

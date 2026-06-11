@@ -29,6 +29,38 @@ import SearchBar from '../../components/SearchBar.astro';
       </div>
     </section>
 
+    <section class="featured-pets" id="selected-pet-section" hidden>
+      <div class="container">
+        <article class="search-card pet-detail-card fade-in is-visible">
+          <div class="pet-detail-avatar" aria-hidden="true" id="selected-pet-avatar">
+            <span class="pet-avatar-emoji">🐾</span>
+          </div>
+
+          <div class="pet-detail-header">
+            <div class="pet-header">
+              <h1 id="selected-pet-name">載入中...</h1>
+              <span class="pet-gender" id="selected-pet-gender">-</span>
+            </div>
+            <div id="selected-pet-badge"></div>
+          </div>
+
+          <p class="pet-detail-lead" id="selected-pet-description"></p>
+          <p class="pet-description" id="selected-pet-story"></p>
+
+          <div class="pet-details pet-detail-facts" id="selected-pet-facts"></div>
+
+          <div class="pet-tags" id="selected-pet-tags"></div>
+
+          <div class="pet-profile-note" id="selected-pet-availability-note" hidden></div>
+
+          <div class="hero-actions">
+            <a class="btn-primary" href="/apply" id="selected-pet-apply">我想領養這隻毛孩</a>
+            <a class="btn-outline" href="/pets">回到毛孩列表</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="featured-pets">
       <div class="container">
         <div class="pets-grid" id="pets-grid" aria-live="polite"></div>
@@ -44,6 +76,17 @@ import SearchBar from '../../components/SearchBar.astro';
     const resultMeta = document.querySelector('#pet-results-meta');
     const emptyState = document.querySelector('#pet-empty-state');
     const grid = document.querySelector('#pets-grid');
+    const selectedPetSection = document.querySelector('#selected-pet-section');
+    const selectedPetAvatar = document.querySelector('#selected-pet-avatar');
+    const selectedPetName = document.querySelector('#selected-pet-name');
+    const selectedPetGender = document.querySelector('#selected-pet-gender');
+    const selectedPetBadge = document.querySelector('#selected-pet-badge');
+    const selectedPetDescription = document.querySelector('#selected-pet-description');
+    const selectedPetStory = document.querySelector('#selected-pet-story');
+    const selectedPetFacts = document.querySelector('#selected-pet-facts');
+    const selectedPetTags = document.querySelector('#selected-pet-tags');
+    const selectedPetAvailabilityNote = document.querySelector('#selected-pet-availability-note');
+    const selectedPetApply = document.querySelector('#selected-pet-apply');
     const loadingState = document.createElement('p');
     loadingState.className = 'pet-results-meta';
     loadingState.textContent = '正在載入毛孩資料...';
@@ -108,6 +151,98 @@ import SearchBar from '../../components/SearchBar.astro';
       }
     };
 
+    const renderSelectedPetAvatar = (pet) => {
+      if (!selectedPetAvatar) return;
+
+      if (pet.coverImageUrl) {
+        selectedPetAvatar.innerHTML = `<img class="pet-avatar-image" src="${escapeHtml(pet.coverImageUrl)}" alt="${escapeHtml(pet.name)} 的封面圖片" />`;
+        return;
+      }
+
+      selectedPetAvatar.innerHTML = `<span class="pet-avatar-emoji">${escapeHtml(pet.emoji || '🐾')}</span>`;
+    };
+
+    const renderSelectedPetBadge = (pet) => {
+      if (!selectedPetBadge) return;
+
+      if (pet.badge) {
+        selectedPetBadge.innerHTML = `<div class="pet-badge ${escapeHtml(pet.badge.tone)}">${escapeHtml(pet.badge.label)}</div>`;
+        return;
+      }
+
+      selectedPetBadge.innerHTML = '';
+    };
+
+    const renderSelectedPet = (pet) => {
+      if (!selectedPetSection) return;
+
+      selectedPetSection.hidden = false;
+      if (selectedPetName) selectedPetName.textContent = pet.name || '毛孩';
+      if (selectedPetGender) {
+        selectedPetGender.textContent = pet.gender === 'male' ? '♂' : '♀';
+        selectedPetGender.className = `pet-gender ${escapeHtml(pet.gender || 'male')}`;
+      }
+      if (selectedPetDescription) selectedPetDescription.textContent = pet.description || '沒有提供毛孩描述。';
+      if (selectedPetStory) selectedPetStory.textContent = pet.story || '沒有提供毛孩故事。';
+      if (selectedPetFacts) {
+        selectedPetFacts.innerHTML = `
+          <span class="detail-item">🎂 ${escapeHtml(pet.age || '-')}</span>
+          <span class="detail-item">📏 ${escapeHtml(pet.size || '-')}</span>
+          <span class="detail-item">📍 ${escapeHtml(pet.location || '-')}</span>
+          <span class="detail-item">🐾 ${escapeHtml(pet.species === 'dog' ? '狗狗' : pet.species === 'cat' ? '貓咪' : '其他')}</span>
+        `;
+      }
+      if (selectedPetTags) {
+        selectedPetTags.innerHTML = Array.isArray(pet.tags) && pet.tags.length
+          ? pet.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')
+          : '';
+      }
+      if (selectedPetAvailabilityNote) {
+        selectedPetAvailabilityNote.hidden = true;
+        selectedPetAvailabilityNote.innerHTML = '';
+      }
+      if (selectedPetApply) {
+        selectedPetApply.href = `/apply?pet=${encodeURIComponent(pet.id)}`;
+        selectedPetApply.textContent = '我想領養這隻毛孩';
+      }
+      renderSelectedPetAvatar(pet);
+      renderSelectedPetBadge(pet);
+      window.PawsHomeFavorites?.syncButtons?.();
+    };
+
+    const showSelectedPetUnavailable = (message) => {
+      if (!selectedPetSection) return;
+
+      selectedPetSection.hidden = false;
+      if (selectedPetName) selectedPetName.textContent = '這隻毛孩目前已下架';
+      if (selectedPetAvatar) selectedPetAvatar.innerHTML = '<span class="pet-avatar-emoji">🐾</span>';
+      if (selectedPetGender) {
+        selectedPetGender.textContent = '已下架';
+        selectedPetGender.className = 'pet-gender';
+      }
+      if (selectedPetBadge) selectedPetBadge.innerHTML = '';
+      if (selectedPetDescription) selectedPetDescription.textContent = message;
+      if (selectedPetStory) selectedPetStory.textContent = '你可以先回到列表，看看其他正在等待的毛孩。';
+      if (selectedPetFacts) {
+        selectedPetFacts.innerHTML = `
+          <span class="detail-item">⚠️ 已下架 / 已領養</span>
+          <span class="detail-item">請查看其他毛孩</span>
+        `;
+      }
+      if (selectedPetTags) selectedPetTags.innerHTML = '';
+      if (selectedPetAvailabilityNote) {
+        selectedPetAvailabilityNote.hidden = false;
+        selectedPetAvailabilityNote.innerHTML = `
+          <h3>目前無法申請</h3>
+          <p>${escapeHtml(message)}</p>
+        `;
+      }
+      if (selectedPetApply) {
+        selectedPetApply.href = '/pets';
+        selectedPetApply.textContent = '回到毛孩列表';
+      }
+    };
+
     const renderPetCard = (pet) => `
       <article
         class="pet-card fade-in is-visible"
@@ -119,9 +254,11 @@ import SearchBar from '../../components/SearchBar.astro';
       >
         <div class="pet-image">
           ${pet.badge ? `<div class="pet-badge ${escapeHtml(pet.badge.tone)}">${escapeHtml(pet.badge.label)}</div>` : ''}
-          <div class="pet-placeholder">
-            <span class="pet-emoji">${escapeHtml(pet.emoji)}</span>
-          </div>
+          ${
+            pet.coverImageUrl
+              ? `<img class="pet-cover-image" src="${escapeHtml(pet.coverImageUrl)}" alt="${escapeHtml(pet.name)} 的封面圖片" loading="lazy" />`
+              : `<div class="pet-placeholder"><span class="pet-emoji">${escapeHtml(pet.emoji)}</span></div>`
+          }
           <button
             class="favorite-btn"
             type="button"
@@ -159,7 +296,7 @@ import SearchBar from '../../components/SearchBar.astro';
             ${pet.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
           </div>
 
-          <a class="btn-primary full-width" href="/pets/${escapeHtml(pet.id)}">了解更多</a>
+          <a class="btn-primary full-width" href="/pets?id=${encodeURIComponent(pet.id)}">了解更多</a>
         </div>
       </article>
     `;
@@ -195,6 +332,7 @@ import SearchBar from '../../components/SearchBar.astro';
 
     const syncFromUrl = () => {
       const params = new URLSearchParams(window.location.search);
+      const selectedPetId = params.get('id')?.trim() || '';
       state.type = normalize('type', params.get('type'));
       state.age = normalize('age', params.get('age'));
       state.size = normalize('size', params.get('size'));
@@ -212,6 +350,33 @@ import SearchBar from '../../components/SearchBar.astro';
           emptyState.textContent = '資料載入失敗，請稍後再試。';
         }
       });
+
+      if (!selectedPetId) {
+        if (selectedPetSection) selectedPetSection.hidden = true;
+        return;
+      }
+
+      if (selectedPetSection) selectedPetSection.hidden = false;
+
+      fetch(`/api/pets/${encodeURIComponent(selectedPetId)}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('not-found');
+          }
+
+          return response.json();
+        })
+        .then((data) => {
+          if (!data.pet) {
+            showSelectedPetUnavailable('這隻毛孩目前已下架或已被領養。');
+            return;
+          }
+
+          renderSelectedPet(data.pet);
+        })
+        .catch(() => {
+          showSelectedPetUnavailable('這隻毛孩目前已下架或已被領養。');
+        });
     };
 
     form?.addEventListener('submit', (event) => {

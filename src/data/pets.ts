@@ -16,6 +16,7 @@ export interface Pet {
   location: string;
   locationKey: PetLocationKey;
   emoji: string;
+  coverImageUrl?: string;
   status?: PetStatus;
   badge?: {
     label: string;

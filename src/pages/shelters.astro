@@ -3,26 +3,91 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import SectionHeader from '../components/SectionHeader.astro';
-import ShelterCard from '../components/ShelterCard.astro';
-import { shelters } from '../data/shelters';
 ---
 
 <BaseLayout title="合作夥伴 - PawsHome" description="探索我們合作的收容所與中途之家。">
   <Header />
+
   <main>
     <section class="shelters" style="padding-top: 7.5rem;">
       <div class="container">
         <SectionHeader
           eyebrow="Partners"
           title="合作夥伴"
-          description="探索我們合作的收容所與中途之家。"
+          description="探索我們合作的收容所與中途之家，包含聯絡窗口與待領養數量。"
         />
-        <div class="shelters-grid">
-          {shelters.map((shelter) => <ShelterCard shelter={shelter} />)}
+
+        <div class="search-card fade-in is-visible">
+          <h3>夥伴資料</h3>
+          <p class="pet-description" id="shelters-meta">正在讀取收容所資料...</p>
+          <div class="hero-actions" style="margin-top: 1rem;">
+            <a class="btn-primary" href="/apply">前往申請</a>
+          </div>
         </div>
+
+        <div class="shelters-grid" id="shelters-grid" aria-live="polite"></div>
+        <p class="pet-empty-state" id="shelters-empty" hidden>目前沒有可顯示的合作夥伴資料。</p>
       </div>
     </section>
   </main>
-  <Footer />
-</BaseLayout>
 
+  <Footer />
+
+  <script is:inline>
+    const grid = document.querySelector('#shelters-grid');
+    const meta = document.querySelector('#shelters-meta');
+    const emptyState = document.querySelector('#shelters-empty');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const renderShelterCard = (shelter) => `
+      <article class="shelter-card fade-in is-visible" id="${escapeHtml(shelter.id)}" tabindex="0">
+        <div class="shelter-icon">${escapeHtml(shelter.icon)}</div>
+        <h3>${escapeHtml(shelter.name)}</h3>
+        <p>${escapeHtml(shelter.description)}</p>
+        <div class="shelter-stats">
+          <span>📍 ${escapeHtml(shelter.location)}</span>
+          <span>🐾 ${escapeHtml(String(shelter.availablePets ?? 0))} 隻待領養</span>
+        </div>
+        <div class="shelter-contact">
+          <span>👤 ${escapeHtml(shelter.contactName || '未填寫聯絡窗口')}</span>
+          <span>📞 ${escapeHtml(shelter.contactPhone || '未提供電話')}</span>
+          <span>✉️ ${escapeHtml(shelter.contactEmail || '未提供 Email')}</span>
+        </div>
+      </article>
+    `;
+
+    const loadShelters = async () => {
+      if (!grid) return;
+
+      grid.innerHTML = '<p class="pet-results-meta">正在載入合作夥伴資料...</p>';
+
+      const response = await fetch('/api/shelters');
+      const data = await response.json();
+      const shelters = Array.isArray(data.results) ? data.results : [];
+
+      if (meta) {
+        const totalPets = shelters.reduce((sum, shelter) => sum + Number(shelter.availablePets || 0), 0);
+        meta.textContent = shelters.length
+          ? `目前共有 ${shelters.length} 家合作夥伴，提供 ${totalPets} 隻待領養毛孩資訊。`
+          : '目前尚無合作夥伴資料。';
+      }
+
+      grid.innerHTML = shelters.map(renderShelterCard).join('');
+      if (emptyState) {
+        emptyState.hidden = shelters.length !== 0;
+      }
+    };
+
+    loadShelters().catch(() => {
+      if (meta) meta.textContent = '收容所資料載入失敗，請稍後再試。';
+      if (emptyState) emptyState.hidden = false;
+    });
+  </script>
+</BaseLayout>

@@ -6,6 +6,7 @@ export interface Story {
   date: string;
   avatar: string;
   emoji: string;
+  sortOrder?: number;
 }
 
 export const stories: Story[] = [
@@ -37,4 +38,3 @@ export const stories: Story[] = [
     emoji: '🐕‍🦺❤️👴👵',
   },
 ];
-

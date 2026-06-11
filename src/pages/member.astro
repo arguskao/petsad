@@ -1,0 +1,184 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="我的會員 - PawsHome"
+  description="查看目前登入的會員狀態與後續可擴充的功能入口。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Member"
+          title="我的會員"
+          description="登入後可以先確認會員狀態，之後再擴充收藏與申請紀錄。"
+        />
+
+        <div class="search-card fade-in is-visible">
+          <h3>會員狀態</h3>
+          <p class="pet-description" id="member-message">正在讀取登入狀態...</p>
+
+          <div class="pet-details" id="member-details" hidden></div>
+
+          <div class="search-card" id="password-panel" hidden style="margin-top: 1rem; padding: 1rem;">
+            <h3>更改密碼</h3>
+            <p class="pet-description">第一次登入後，請先把收到的密碼換成自己的密碼。</p>
+
+            <form class="apply-form" id="password-form">
+              <div class="filter-group">
+                <label for="currentPassword">目前密碼</label>
+                <input id="currentPassword" name="currentPassword" class="filter-select" type="password" autocomplete="current-password" required />
+              </div>
+
+              <div class="filter-group">
+                <label for="nextPassword">新密碼</label>
+                <input id="nextPassword" name="nextPassword" class="filter-select" type="password" autocomplete="new-password" minlength="8" required />
+              </div>
+
+              <p class="pet-results-meta" id="password-status" aria-live="polite"></p>
+
+              <div class="hero-actions">
+                <button class="btn-primary" type="submit" id="password-button">更新密碼</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="hero-actions">
+            <a class="btn-primary" href="/favorites">前往收藏</a>
+            <a class="btn-outline" href="/pets">繼續看毛孩</a>
+            <a class="btn-outline" href="/auth/login" id="auth-action-link">登入</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const message = document.querySelector('#member-message');
+    const details = document.querySelector('#member-details');
+    const passwordPanel = document.querySelector('#password-panel');
+    const passwordForm = document.querySelector('#password-form');
+    const passwordStatus = document.querySelector('#password-status');
+    const passwordButton = document.querySelector('#password-button');
+    const authActionLink = document.querySelector('#auth-action-link');
+
+    const renderLoggedOut = () => {
+      if (message) {
+        message.textContent = '你目前尚未登入，請先到登入頁建立或登入帳號。';
+      }
+      if (details) {
+        details.hidden = true;
+        details.innerHTML = '';
+      }
+      if (authActionLink) {
+        authActionLink.textContent = '登入';
+        authActionLink.setAttribute('href', '/auth/login');
+      }
+      if (passwordPanel) {
+        passwordPanel.hidden = true;
+      }
+    };
+
+    const renderMember = (member) => {
+      if (message) {
+        message.textContent = member.mustChangePassword
+          ? '你目前已登入，請先更改收到的密碼。'
+          : '你目前已登入，這裡會是之後會員中心的起點。';
+      }
+      if (details) {
+        details.hidden = false;
+        details.innerHTML = `
+          <span class="detail-item">👤 ${member.name}</span>
+          <span class="detail-item">✉️ ${member.email}</span>
+          <span class="detail-item">🆔 ${member.id}</span>
+          <span class="detail-item">🔐 ${member.mustChangePassword ? '需要更改密碼' : '密碼已更新'}</span>
+        `;
+      }
+      if (authActionLink) {
+        authActionLink.textContent = '登出';
+        authActionLink.setAttribute('href', '#');
+      }
+      if (passwordPanel) {
+        passwordPanel.hidden = !member.mustChangePassword;
+      }
+    };
+
+    const loadMember = async () => {
+      const response = await fetch('/api/auth/me');
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.member) {
+        renderLoggedOut();
+        return;
+      }
+
+      renderMember(data.member);
+    };
+
+    passwordForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!passwordButton || !passwordForm) return;
+      if (!passwordForm.reportValidity()) return;
+
+      passwordButton.disabled = true;
+      passwordButton.textContent = '更新中...';
+
+      const formData = new FormData(passwordForm);
+      const payload = {
+        currentPassword: String(formData.get('currentPassword') || ''),
+        nextPassword: String(formData.get('nextPassword') || ''),
+      };
+
+      try {
+        const response = await fetch('/api/auth/password', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || '密碼更新失敗');
+        }
+
+        if (passwordStatus) passwordStatus.textContent = result.message || '密碼已更新。';
+        passwordForm.reset();
+        await loadMember();
+      } catch (error) {
+        if (passwordStatus) passwordStatus.textContent = error instanceof Error ? error.message : '密碼更新失敗，請稍後再試。';
+      } finally {
+        passwordButton.disabled = false;
+        passwordButton.textContent = '更新密碼';
+      }
+    });
+
+    authActionLink?.addEventListener('click', async (event) => {
+      if (authActionLink.getAttribute('href') !== '#') return;
+
+      event.preventDefault();
+      authActionLink.setAttribute('aria-disabled', 'true');
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.assign('/auth/login');
+      } finally {
+        authActionLink.removeAttribute('aria-disabled');
+      }
+    });
+
+    loadMember().catch(() => {
+      renderLoggedOut();
+    });
+  </script>
+</BaseLayout>

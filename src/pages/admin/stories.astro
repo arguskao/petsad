@@ -1,0 +1,469 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="成功故事管理 - PawsHome"
+  description="維護首頁與成功故事頁顯示的領養故事。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="成功故事管理"
+          description="維護前台首頁與成功故事頁會顯示的領養故事內容。"
+        />
+
+        <div class="search-card fade-in is-visible admin-pets-toolbar">
+          <div>
+            <h3>內容提示</h3>
+            <p class="pet-description">
+              這裡會直接更新 D1 的成功故事資料，前台會透過 API 讀取最新內容。
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/stories">查看前台頁</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="stories-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Stories</p>
+            <strong id="stories-total">-</strong>
+            <span>故事總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Authors</p>
+            <strong id="stories-authors">-</strong>
+            <span>作者數量</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Focus</p>
+            <strong id="stories-selected">-</strong>
+            <span>目前選取</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">First</p>
+            <strong id="stories-first">-</strong>
+            <span>首頁優先故事</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-pets-layout">
+          <article class="admin-panel search-card fade-in is-visible admin-pets-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Story Directory</p>
+                <h3>成功故事清單</h3>
+              </div>
+              <span class="admin-panel-note" id="stories-count">-</span>
+            </div>
+
+            <div class="admin-pets-search">
+              <label class="admin-search-field" for="story-admin-search">
+                <span>搜尋成功故事</span>
+                <input id="story-admin-search" type="search" placeholder="輸入標題、作者、日期或 ID" />
+              </label>
+              <button class="btn-outline" type="button" id="story-admin-refresh">重新整理</button>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-pets-table">
+                <thead>
+                  <tr>
+                    <th>故事</th>
+                    <th>作者</th>
+                    <th>排序</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="stories-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="admin-panel search-card fade-in is-visible admin-pet-detail-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Story Editor</p>
+                <h3>成功故事編輯</h3>
+              </div>
+              <span class="admin-panel-note" id="story-detail-id">未選擇</span>
+            </div>
+
+            <form class="admin-pet-form" id="story-editor-form">
+              <div class="admin-detail-pet">
+                <div class="admin-detail-pet-emoji" id="story-detail-emoji">💬</div>
+                <div>
+                  <h3 id="story-detail-title">請從左側選擇成功故事</h3>
+                  <p class="pet-description" id="story-detail-quote">這裡會顯示故事摘要。</p>
+                </div>
+              </div>
+
+              <div class="admin-form-grid">
+                <label class="admin-search-field">
+                  <span>ID</span>
+                  <input id="story-field-id" type="text" readonly />
+                </label>
+                <label class="admin-search-field">
+                  <span>Emoji</span>
+                  <input id="story-field-emoji" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>作者頭像字</span>
+                  <input id="story-field-avatar" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>顯示順序</span>
+                  <input id="story-field-sort-order" type="number" min="0" step="1" required />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>標題</span>
+                  <input id="story-field-title" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>作者</span>
+                  <input id="story-field-author" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>日期文字</span>
+                  <input id="story-field-date" type="text" required />
+                </label>
+              </div>
+
+              <label class="admin-search-field admin-full-width">
+                <span>故事引言</span>
+                <textarea id="story-field-quote" rows="6" required></textarea>
+              </label>
+
+              <div class="admin-detail-note-block">
+                <span class="admin-detail-label">前台入口</span>
+                <div class="hero-actions admin-detail-actions">
+                  <a class="btn-outline" id="story-detail-public" href="/stories">前台頁</a>
+                </div>
+              </div>
+
+              <div class="hero-actions admin-detail-actions">
+                <button class="btn-primary" type="submit" id="story-save-button" disabled>儲存變更</button>
+                <button class="btn-outline" type="button" id="story-reset-button" disabled>重設</button>
+              </div>
+
+              <p class="pet-description" id="story-detail-hint">從左側列表點選故事後，這裡會載入資料。</p>
+            </form>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const storiesTotal = document.querySelector('#stories-total');
+    const storiesAuthors = document.querySelector('#stories-authors');
+    const storiesSelected = document.querySelector('#stories-selected');
+    const storiesFirst = document.querySelector('#stories-first');
+    const storiesCount = document.querySelector('#stories-count');
+    const storiesTableBody = document.querySelector('#stories-table-body');
+    const searchInput = document.querySelector('#story-admin-search');
+    const refreshButton = document.querySelector('#story-admin-refresh');
+    const storyDetailId = document.querySelector('#story-detail-id');
+    const storyDetailEmoji = document.querySelector('#story-detail-emoji');
+    const storyDetailTitle = document.querySelector('#story-detail-title');
+    const storyDetailQuote = document.querySelector('#story-detail-quote');
+    const storyDetailPublic = document.querySelector('#story-detail-public');
+    const storyDetailHint = document.querySelector('#story-detail-hint');
+    const storyEditorForm = document.querySelector('#story-editor-form');
+    const storySaveButton = document.querySelector('#story-save-button');
+    const storyResetButton = document.querySelector('#story-reset-button');
+    const storyFieldId = document.querySelector('#story-field-id');
+    const storyFieldEmoji = document.querySelector('#story-field-emoji');
+    const storyFieldAvatar = document.querySelector('#story-field-avatar');
+    const storyFieldSortOrder = document.querySelector('#story-field-sort-order');
+    const storyFieldTitle = document.querySelector('#story-field-title');
+    const storyFieldAuthor = document.querySelector('#story-field-author');
+    const storyFieldDate = document.querySelector('#story-field-date');
+    const storyFieldQuote = document.querySelector('#story-field-quote');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const allStories = [];
+    let currentStories = [];
+    let currentStoryId = '';
+    let currentStorySnapshot = null;
+
+    const renderRow = (story) => `
+      <tr>
+        <td>
+          <a href="/stories#${escapeHtml(story.id)}">${escapeHtml(story.emoji)} ${escapeHtml(story.title)}</a>
+          <div class="admin-table-subtitle">${escapeHtml(story.id)}</div>
+          <div class="admin-table-subtitle">${escapeHtml(story.quote)}</div>
+        </td>
+        <td>
+          <strong>${escapeHtml(story.author)}</strong>
+          <div class="admin-table-subtitle">${escapeHtml(story.date)}</div>
+          <div class="admin-table-subtitle">頭像：${escapeHtml(story.avatar)}</div>
+        </td>
+        <td>${escapeHtml(String(story.sortOrder ?? 0))}</td>
+        <td>
+          <div class="admin-row-actions">
+            <a class="admin-action-btn secondary" href="/stories#${escapeHtml(story.id)}">前台頁</a>
+            <a class="admin-action-btn secondary" href="/admin/stories?id=${encodeURIComponent(story.id)}">查看詳情</a>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const setDetailState = (message) => {
+      if (storyDetailHint) storyDetailHint.textContent = message;
+    };
+
+    const fillForm = (story) => {
+      if (!story) return;
+
+      if (storyFieldId) storyFieldId.value = story.id || '';
+      if (storyFieldEmoji) storyFieldEmoji.value = story.emoji || '';
+      if (storyFieldAvatar) storyFieldAvatar.value = story.avatar || '';
+      if (storyFieldSortOrder) storyFieldSortOrder.value = String(story.sortOrder ?? 0);
+      if (storyFieldTitle) storyFieldTitle.value = story.title || '';
+      if (storyFieldAuthor) storyFieldAuthor.value = story.author || '';
+      if (storyFieldDate) storyFieldDate.value = story.date || '';
+      if (storyFieldQuote) storyFieldQuote.value = story.quote || '';
+      if (storySaveButton) storySaveButton.disabled = false;
+      if (storyResetButton) storyResetButton.disabled = false;
+    };
+
+    const snapshotForm = () => ({
+      id: storyFieldId?.value || '',
+      emoji: storyFieldEmoji?.value || '',
+      avatar: storyFieldAvatar?.value || '',
+      sortOrder: Number(storyFieldSortOrder?.value || 0),
+      title: storyFieldTitle?.value || '',
+      author: storyFieldAuthor?.value || '',
+      date: storyFieldDate?.value || '',
+      quote: storyFieldQuote?.value || '',
+    });
+
+    const renderStats = (stories) => {
+      const authors = new Set(stories.map((story) => story.author).filter(Boolean));
+      const firstStory = [...stories].sort((left, right) => Number(left.sortOrder || 0) - Number(right.sortOrder || 0))[0];
+
+      if (storiesTotal) storiesTotal.textContent = String(stories.length);
+      if (storiesAuthors) storiesAuthors.textContent = String(authors.size);
+      if (storiesSelected) storiesSelected.textContent = currentStoryId ? '1' : '0';
+      if (storiesFirst) storiesFirst.textContent = firstStory?.avatar || '-';
+      if (storiesCount) storiesCount.textContent = `${stories.length} 筆`;
+    };
+
+    const renderStories = () => {
+      if (!storiesTableBody) return;
+
+      if (!currentStories.length) {
+        storiesTableBody.innerHTML = '<tr><td colspan="4">沒有找到符合條件的成功故事</td></tr>';
+        return;
+      }
+
+      storiesTableBody.innerHTML = currentStories.map(renderRow).join('');
+    };
+
+    const filterStories = () => {
+      const keyword = (searchInput?.value || '').trim().toLowerCase();
+
+      if (!keyword) {
+        currentStories = [...allStories];
+        renderStories();
+        renderStats(currentStories);
+        return;
+      }
+
+      currentStories = allStories.filter((story) => {
+        const haystack = [
+          story.id,
+          story.title,
+          story.quote,
+          story.author,
+          story.date,
+          story.avatar,
+          story.emoji,
+        ].join(' ').toLowerCase();
+
+        return haystack.includes(keyword);
+      });
+
+      renderStories();
+      renderStats(currentStories);
+    };
+
+    const renderDetail = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id')?.trim() || '';
+
+      currentStoryId = id;
+
+      if (!id) {
+        currentStorySnapshot = null;
+        if (storyDetailId) storyDetailId.textContent = '未選擇';
+        if (storyDetailEmoji) storyDetailEmoji.textContent = '💬';
+        if (storyDetailTitle) storyDetailTitle.textContent = '請從左側選擇成功故事';
+        if (storyDetailQuote) storyDetailQuote.textContent = '這裡會顯示故事摘要。';
+        if (storyDetailPublic) storyDetailPublic.setAttribute('href', '/stories');
+        if (storySaveButton) storySaveButton.disabled = true;
+        if (storyResetButton) storyResetButton.disabled = true;
+        setDetailState('從左側列表點選故事後，這裡會載入資料。');
+        return;
+      }
+
+      if (storyDetailId) storyDetailId.textContent = `ID：${id}`;
+      setDetailState('載入中...');
+
+      const response = await fetch(`/api/admin/stories/${encodeURIComponent(id)}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || '讀取成功故事詳情失敗');
+      }
+
+      const story = data.story || {};
+      currentStorySnapshot = {
+        id: story.id || '',
+        title: story.title || '',
+        quote: story.quote || '',
+        author: story.author || '',
+        date: story.date || '',
+        avatar: story.avatar || '',
+        emoji: story.emoji || '',
+        sortOrder: story.sortOrder ?? 0,
+      };
+
+      if (storyDetailEmoji) storyDetailEmoji.textContent = story.emoji || '💬';
+      if (storyDetailTitle) storyDetailTitle.textContent = story.title || '-';
+      if (storyDetailQuote) storyDetailQuote.textContent = story.quote || '沒有提供故事引言。';
+      if (storyDetailPublic) storyDetailPublic.setAttribute('href', `/stories#${encodeURIComponent(story.id || '')}`);
+      fillForm(currentStorySnapshot);
+      setDetailState('已載入成功故事資料。');
+    };
+
+    const loadStories = async () => {
+      if (storiesTableBody) {
+        storiesTableBody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
+      }
+
+      const response = await fetch('/api/admin/stories');
+      const data = await response.json();
+      const stories = Array.isArray(data.results) ? data.results : [];
+
+      allStories.splice(0, allStories.length, ...stories);
+      currentStories = [...allStories];
+
+      renderStories();
+      renderStats(currentStories);
+      await renderDetail();
+    };
+
+    searchInput?.addEventListener('input', filterStories);
+    refreshButton?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      loadStories().catch(() => {
+        if (storiesTableBody) {
+          storiesTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+        }
+      });
+    });
+
+    window.addEventListener('popstate', () => {
+      renderDetail().catch(() => {
+        if (storyDetailTitle) storyDetailTitle.textContent = '資料載入失敗';
+        if (storyDetailQuote) storyDetailQuote.textContent = '請稍後再試。';
+      });
+    });
+
+    storiesTableBody?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const detailLink = target.closest('a[href^="/admin/stories?id="]');
+      if (!detailLink) return;
+
+      event.preventDefault();
+      const href = detailLink.getAttribute('href');
+      if (!href) return;
+
+      const url = new URL(href, window.location.origin);
+      window.history.pushState({}, '', `${window.location.pathname}${url.search}`);
+      renderDetail().catch(() => {
+        if (storyDetailTitle) storyDetailTitle.textContent = '資料載入失敗';
+        if (storyDetailQuote) storyDetailQuote.textContent = '請稍後再試。';
+      });
+    });
+
+    storyResetButton?.addEventListener('click', () => {
+      if (!currentStorySnapshot) return;
+      fillForm(currentStorySnapshot);
+      setDetailState('已重設為目前資料。');
+    });
+
+    storyEditorForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      if (!currentStoryId) return;
+
+      const payload = snapshotForm();
+      if (storySaveButton) storySaveButton.disabled = true;
+      if (storyResetButton) storyResetButton.disabled = true;
+      setDetailState('儲存中...');
+
+      fetch(`/api/admin/stories/${encodeURIComponent(currentStoryId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+          if (!response.ok) {
+            throw new Error(data.message || '更新成功故事失敗');
+          }
+
+          window.PawsHomeUI?.showNotification?.(data.message || '成功故事已更新。');
+          return loadStories();
+        })
+        .catch(() => {
+          window.PawsHomeUI?.showNotification?.('更新失敗，請稍後再試。');
+        })
+        .finally(() => {
+          if (storySaveButton) storySaveButton.disabled = false;
+          if (storyResetButton) storyResetButton.disabled = false;
+        });
+    });
+
+    loadStories().catch(() => {
+      if (storiesTableBody) {
+        storiesTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+      }
+    });
+  </script>
+</BaseLayout>

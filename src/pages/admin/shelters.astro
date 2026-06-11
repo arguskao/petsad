@@ -1,0 +1,491 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="收容所管理 - PawsHome"
+  description="維護合作收容所與中途之家的聯絡與展示資料。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="收容所管理"
+          description="維護合作夥伴的聯絡資訊、顯示順序與待領養數量。"
+        />
+
+        <div class="search-card fade-in is-visible admin-pets-toolbar">
+          <div>
+            <h3>管理提示</h3>
+            <p class="pet-description">
+              這裡會直接修改 D1 的收容所資料，前台合作夥伴頁與首頁區塊會同步讀取最新內容。
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/shelters">查看前台頁</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="shelter-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Total</p>
+            <strong id="shelters-total">-</strong>
+            <span>收容所總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Pets</p>
+            <strong id="shelters-available">-</strong>
+            <span>待領養總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Contacts</p>
+            <strong id="shelters-contacted">-</strong>
+            <span>已填聯絡資訊</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Focus</p>
+            <strong id="shelters-selected">-</strong>
+            <span>目前選取</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-pets-layout">
+          <article class="admin-panel search-card fade-in is-visible admin-pets-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Shelter Directory</p>
+                <h3>收容所清單</h3>
+              </div>
+              <span class="admin-panel-note" id="shelters-count">-</span>
+            </div>
+
+            <div class="admin-pets-search">
+              <label class="admin-search-field" for="shelter-admin-search">
+                <span>搜尋收容所</span>
+                <input id="shelter-admin-search" type="search" placeholder="輸入名稱、地區、聯絡人或 ID" />
+              </label>
+              <button class="btn-outline" type="button" id="shelter-admin-refresh">重新整理</button>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-pets-table">
+                <thead>
+                  <tr>
+                    <th>收容所</th>
+                    <th>聯絡方式</th>
+                    <th>待領養</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="shelters-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="admin-panel search-card fade-in is-visible admin-pet-detail-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Shelter Editor</p>
+                <h3>收容所編輯</h3>
+              </div>
+              <span class="admin-panel-note" id="shelter-detail-id">未選擇</span>
+            </div>
+
+            <form class="admin-pet-form" id="shelter-editor-form">
+              <div class="admin-detail-pet">
+                <div class="admin-detail-pet-emoji" id="shelter-detail-icon">🏥</div>
+                <div>
+                  <h3 id="shelter-detail-name">請從左側選擇收容所</h3>
+                  <p class="pet-description" id="shelter-detail-description">這裡會顯示完整收容所資料。</p>
+                </div>
+              </div>
+
+              <div class="admin-form-grid">
+                <label class="admin-search-field">
+                  <span>ID</span>
+                  <input id="shelter-field-id" type="text" readonly />
+                </label>
+                <label class="admin-search-field">
+                  <span>Icon</span>
+                  <input id="shelter-field-icon" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>名稱</span>
+                  <input id="shelter-field-name" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>所在地</span>
+                  <input id="shelter-field-location" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>待領養數量</span>
+                  <input id="shelter-field-available-pets" type="number" min="0" step="1" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>顯示順序</span>
+                  <input id="shelter-field-sort-order" type="number" min="0" step="1" required />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>聯絡人</span>
+                  <input id="shelter-field-contact-name" type="text" placeholder="例如：送養服務窗口" />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>聯絡電話</span>
+                  <input id="shelter-field-contact-phone" type="text" placeholder="例如：02-1234-5678" />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>聯絡 Email</span>
+                  <input id="shelter-field-contact-email" type="email" placeholder="adopt@example.com" />
+                </label>
+              </div>
+
+              <label class="admin-search-field admin-full-width">
+                <span>描述</span>
+                <textarea id="shelter-field-description" rows="5" required></textarea>
+              </label>
+
+              <div class="admin-detail-note-block">
+                <span class="admin-detail-label">前台入口</span>
+                <div class="hero-actions admin-detail-actions">
+                  <a class="btn-outline" id="shelter-detail-public" href="/shelters">前台頁</a>
+                </div>
+              </div>
+
+              <div class="hero-actions admin-detail-actions">
+                <button class="btn-primary" type="submit" id="shelter-save-button" disabled>儲存變更</button>
+                <button class="btn-outline" type="button" id="shelter-reset-button" disabled>重設</button>
+              </div>
+
+              <p class="pet-description" id="shelter-detail-hint">從左側列表點選收容所後，這裡會載入資料。</p>
+            </form>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const sheltersTotal = document.querySelector('#shelters-total');
+    const sheltersAvailable = document.querySelector('#shelters-available');
+    const sheltersContacted = document.querySelector('#shelters-contacted');
+    const sheltersSelected = document.querySelector('#shelters-selected');
+    const sheltersCount = document.querySelector('#shelters-count');
+    const sheltersTableBody = document.querySelector('#shelters-table-body');
+    const searchInput = document.querySelector('#shelter-admin-search');
+    const refreshButton = document.querySelector('#shelter-admin-refresh');
+    const shelterDetailId = document.querySelector('#shelter-detail-id');
+    const shelterDetailIcon = document.querySelector('#shelter-detail-icon');
+    const shelterDetailName = document.querySelector('#shelter-detail-name');
+    const shelterDetailDescription = document.querySelector('#shelter-detail-description');
+    const shelterDetailPublic = document.querySelector('#shelter-detail-public');
+    const shelterDetailHint = document.querySelector('#shelter-detail-hint');
+    const shelterEditorForm = document.querySelector('#shelter-editor-form');
+    const shelterSaveButton = document.querySelector('#shelter-save-button');
+    const shelterResetButton = document.querySelector('#shelter-reset-button');
+    const shelterFieldId = document.querySelector('#shelter-field-id');
+    const shelterFieldIcon = document.querySelector('#shelter-field-icon');
+    const shelterFieldName = document.querySelector('#shelter-field-name');
+    const shelterFieldLocation = document.querySelector('#shelter-field-location');
+    const shelterFieldAvailablePets = document.querySelector('#shelter-field-available-pets');
+    const shelterFieldSortOrder = document.querySelector('#shelter-field-sort-order');
+    const shelterFieldContactName = document.querySelector('#shelter-field-contact-name');
+    const shelterFieldContactPhone = document.querySelector('#shelter-field-contact-phone');
+    const shelterFieldContactEmail = document.querySelector('#shelter-field-contact-email');
+    const shelterFieldDescription = document.querySelector('#shelter-field-description');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const allShelters = [];
+    let currentShelters = [];
+    let currentShelterId = '';
+    let currentShelterSnapshot = null;
+
+    const renderRow = (shelter) => `
+      <tr>
+        <td>
+          <a href="/shelters#${escapeHtml(shelter.id)}">${escapeHtml(shelter.icon)} ${escapeHtml(shelter.name)}</a>
+          <div class="admin-table-subtitle">${escapeHtml(shelter.location)}</div>
+          <div class="admin-table-subtitle">${escapeHtml(shelter.id)}</div>
+        </td>
+        <td>
+          <strong>${escapeHtml(shelter.contactName || '未填寫')}</strong>
+          <div class="admin-table-subtitle">${escapeHtml(shelter.contactPhone || '未提供電話')}</div>
+          <div class="admin-table-subtitle">${escapeHtml(shelter.contactEmail || '未提供 Email')}</div>
+        </td>
+        <td>${escapeHtml(String(shelter.availablePets ?? 0))}</td>
+        <td>
+          <div class="admin-row-actions">
+            <a class="admin-action-btn secondary" href="/shelters#${escapeHtml(shelter.id)}">前台頁</a>
+            <a class="admin-action-btn secondary" href="/admin/shelters?id=${encodeURIComponent(shelter.id)}">查看詳情</a>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const setDetailState = (message) => {
+      if (shelterDetailHint) shelterDetailHint.textContent = message;
+    };
+
+    const fillForm = (shelter) => {
+      if (!shelter) return;
+
+      if (shelterFieldId) shelterFieldId.value = shelter.id || '';
+      if (shelterFieldIcon) shelterFieldIcon.value = shelter.icon || '';
+      if (shelterFieldName) shelterFieldName.value = shelter.name || '';
+      if (shelterFieldLocation) shelterFieldLocation.value = shelter.location || '';
+      if (shelterFieldAvailablePets) shelterFieldAvailablePets.value = String(shelter.availablePets ?? 0);
+      if (shelterFieldSortOrder) shelterFieldSortOrder.value = String(shelter.sortOrder ?? 0);
+      if (shelterFieldContactName) shelterFieldContactName.value = shelter.contactName || '';
+      if (shelterFieldContactPhone) shelterFieldContactPhone.value = shelter.contactPhone || '';
+      if (shelterFieldContactEmail) shelterFieldContactEmail.value = shelter.contactEmail || '';
+      if (shelterFieldDescription) shelterFieldDescription.value = shelter.description || '';
+      if (shelterSaveButton) shelterSaveButton.disabled = false;
+      if (shelterResetButton) shelterResetButton.disabled = false;
+    };
+
+    const snapshotForm = () => ({
+      id: shelterFieldId?.value || '',
+      icon: shelterFieldIcon?.value || '',
+      name: shelterFieldName?.value || '',
+      location: shelterFieldLocation?.value || '',
+      availablePets: Number(shelterFieldAvailablePets?.value || 0),
+      sortOrder: Number(shelterFieldSortOrder?.value || 0),
+      contactName: shelterFieldContactName?.value || '',
+      contactPhone: shelterFieldContactPhone?.value || '',
+      contactEmail: shelterFieldContactEmail?.value || '',
+      description: shelterFieldDescription?.value || '',
+    });
+
+    const renderStats = (shelters) => {
+      const total = shelters.length;
+      const available = shelters.reduce((sum, shelter) => sum + Number(shelter.availablePets || 0), 0);
+      const contacted = shelters.filter((shelter) => shelter.contactName || shelter.contactPhone || shelter.contactEmail).length;
+
+      if (sheltersTotal) sheltersTotal.textContent = String(total);
+      if (sheltersAvailable) sheltersAvailable.textContent = String(available);
+      if (sheltersContacted) sheltersContacted.textContent = String(contacted);
+      if (sheltersSelected) sheltersSelected.textContent = currentShelterId ? '1' : '0';
+      if (sheltersCount) sheltersCount.textContent = `${shelters.length} 筆`;
+    };
+
+    const renderShelters = () => {
+      if (!sheltersTableBody) return;
+
+      if (!currentShelters.length) {
+        sheltersTableBody.innerHTML = '<tr><td colspan="4">沒有找到符合條件的收容所</td></tr>';
+        return;
+      }
+
+      sheltersTableBody.innerHTML = currentShelters.map(renderRow).join('');
+    };
+
+    const filterShelters = () => {
+      const keyword = (searchInput?.value || '').trim().toLowerCase();
+
+      if (!keyword) {
+        currentShelters = [...allShelters];
+        renderShelters();
+        renderStats(currentShelters);
+        return;
+      }
+
+      currentShelters = allShelters.filter((shelter) => {
+        const haystack = [
+          shelter.id,
+          shelter.icon,
+          shelter.name,
+          shelter.description,
+          shelter.location,
+          shelter.contactName,
+          shelter.contactPhone,
+          shelter.contactEmail,
+        ].join(' ').toLowerCase();
+
+        return haystack.includes(keyword);
+      });
+
+      renderShelters();
+      renderStats(currentShelters);
+    };
+
+    const renderDetail = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id')?.trim() || '';
+
+      currentShelterId = id;
+
+      if (!id) {
+        currentShelterSnapshot = null;
+        if (shelterDetailId) shelterDetailId.textContent = '未選擇';
+        if (shelterDetailIcon) shelterDetailIcon.textContent = '🏥';
+        if (shelterDetailName) shelterDetailName.textContent = '請從左側選擇收容所';
+        if (shelterDetailDescription) shelterDetailDescription.textContent = '這裡會顯示完整收容所資料。';
+        if (shelterDetailPublic) shelterDetailPublic.setAttribute('href', '/shelters');
+        if (shelterSaveButton) shelterSaveButton.disabled = true;
+        if (shelterResetButton) shelterResetButton.disabled = true;
+        setDetailState('從左側列表點選收容所後，這裡會載入資料。');
+        return;
+      }
+
+      if (shelterDetailId) shelterDetailId.textContent = `ID：${id}`;
+      setDetailState('載入中...');
+
+      const response = await fetch(`/api/admin/shelters?limit=100`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || '讀取收容所詳情失敗');
+      }
+
+      const shelter = Array.isArray(data.results) ? data.results.find((item) => item.id === id) : null;
+      if (!shelter) {
+        throw new Error('找不到指定的收容所。');
+      }
+
+      currentShelterSnapshot = {
+        id: shelter.id || '',
+        icon: shelter.icon || '',
+        name: shelter.name || '',
+        description: shelter.description || '',
+        location: shelter.location || '',
+        availablePets: shelter.availablePets ?? 0,
+        contactName: shelter.contactName || '',
+        contactPhone: shelter.contactPhone || '',
+        contactEmail: shelter.contactEmail || '',
+        sortOrder: shelter.sortOrder ?? 0,
+      };
+
+      if (shelterDetailIcon) shelterDetailIcon.textContent = shelter.icon || '🏥';
+      if (shelterDetailName) shelterDetailName.textContent = shelter.name || '-';
+      if (shelterDetailDescription) shelterDetailDescription.textContent = shelter.description || '沒有提供描述。';
+      if (shelterDetailPublic) shelterDetailPublic.setAttribute('href', `/shelters#${encodeURIComponent(shelter.id || '')}`);
+      fillForm(currentShelterSnapshot);
+      setDetailState('已載入收容所資料。');
+    };
+
+    const loadShelters = async () => {
+      if (sheltersTableBody) {
+        sheltersTableBody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
+      }
+
+      const response = await fetch('/api/admin/shelters');
+      const data = await response.json();
+      const shelters = Array.isArray(data.results) ? data.results : [];
+
+      allShelters.splice(0, allShelters.length, ...shelters);
+      currentShelters = [...allShelters];
+
+      renderShelters();
+      renderStats(currentShelters);
+      await renderDetail();
+    };
+
+    searchInput?.addEventListener('input', filterShelters);
+    refreshButton?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      loadShelters().catch(() => {
+        if (sheltersTableBody) {
+          sheltersTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+        }
+      });
+    });
+
+    window.addEventListener('popstate', () => {
+      renderDetail().catch(() => {
+        if (shelterDetailName) shelterDetailName.textContent = '資料載入失敗';
+        if (shelterDetailDescription) shelterDetailDescription.textContent = '請稍後再試。';
+      });
+    });
+
+    sheltersTableBody?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const detailLink = target.closest('a[href^="/admin/shelters?id="]');
+      if (!detailLink) return;
+
+      event.preventDefault();
+      const href = detailLink.getAttribute('href');
+      if (!href) return;
+
+      const url = new URL(href, window.location.origin);
+      window.history.pushState({}, '', `${window.location.pathname}${url.search}`);
+      renderDetail().catch(() => {
+        if (shelterDetailName) shelterDetailName.textContent = '資料載入失敗';
+        if (shelterDetailDescription) shelterDetailDescription.textContent = '請稍後再試。';
+      });
+    });
+
+    shelterResetButton?.addEventListener('click', () => {
+      if (!currentShelterSnapshot) return;
+      fillForm(currentShelterSnapshot);
+      setDetailState('已重設為目前資料。');
+    });
+
+    shelterEditorForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      if (!currentShelterId) return;
+
+      const payload = snapshotForm();
+      if (shelterSaveButton) shelterSaveButton.disabled = true;
+      if (shelterResetButton) shelterResetButton.disabled = true;
+      setDetailState('儲存中...');
+
+      fetch(`/api/admin/shelters/${encodeURIComponent(currentShelterId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+          if (!response.ok) {
+            throw new Error(data.message || '更新收容所資料失敗');
+          }
+
+          window.PawsHomeUI?.showNotification?.(data.message || '收容所資料已更新。');
+          return renderDetail();
+        })
+        .catch(() => {
+          window.PawsHomeUI?.showNotification?.('更新失敗，請稍後再試。');
+        })
+        .finally(() => {
+          if (shelterSaveButton) shelterSaveButton.disabled = false;
+          if (shelterResetButton) shelterResetButton.disabled = false;
+        });
+    });
+
+    loadShelters().catch(() => {
+      if (sheltersTableBody) {
+        sheltersTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+      }
+    });
+  </script>
+</BaseLayout>

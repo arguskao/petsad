@@ -12,6 +12,7 @@ type PetRow = {
   location: string;
   location_key: Pet['locationKey'];
   emoji: string;
+  cover_image_url: string | null;
   status: PetStatus | null;
   badge_label: string | null;
   badge_tone: 'urgent' | 'new' | 'default' | null;
@@ -42,6 +43,7 @@ const toPet = (row: PetRow): Pet => ({
   location: row.location,
   locationKey: row.location_key,
   emoji: row.emoji,
+  coverImageUrl: row.cover_image_url ?? '',
   status: row.status ?? 'available',
   badge: row.badge_label ? { label: row.badge_label, tone: row.badge_tone ?? 'default' } : undefined,
   description: row.description,
@@ -71,6 +73,7 @@ export const getPetsFromDatabase = async (db?: D1Database) => {
         location,
         location_key,
         emoji,
+        cover_image_url,
         status,
         badge_label,
         badge_tone,
@@ -111,6 +114,7 @@ export const getPetByIdFromDatabase = async (db: D1Database | undefined, id: str
         location,
         location_key,
         emoji,
+        cover_image_url,
         status,
         badge_label,
         badge_tone,

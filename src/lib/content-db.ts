@@ -19,6 +19,9 @@ type ShelterRow = {
   description: string;
   location: string;
   available_pets: number;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
   sort_order: number;
 };
 
@@ -32,6 +35,7 @@ const toStory = (row: StoryRow): Story => ({
   date: row.date,
   avatar: row.avatar,
   emoji: row.emoji,
+  sortOrder: row.sort_order,
 });
 
 const toShelter = (row: ShelterRow): Shelter => ({
@@ -41,6 +45,9 @@ const toShelter = (row: ShelterRow): Shelter => ({
   description: row.description,
   location: row.location,
   availablePets: row.available_pets,
+  contactName: row.contact_name ?? '',
+  contactPhone: row.contact_phone ?? '',
+  contactEmail: row.contact_email ?? '',
 });
 
 export const getStoriesFromDatabase = async (db?: D1Database) => {
@@ -88,6 +95,9 @@ export const getSheltersFromDatabase = async (db?: D1Database) => {
         description,
         location,
         available_pets,
+        contact_name,
+        contact_phone,
+        contact_email,
         sort_order
       FROM shelters
       ORDER BY sort_order ASC, name ASC

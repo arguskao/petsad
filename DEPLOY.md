@@ -1,212 +1,80 @@
 # 部署指南
-領養網站
 
-## Astro v6 部署路線
+這份文件只描述目前正式路線：Cloudflare Pages + Pages Functions + D1。
+如果你只是想看舊版靜態頁面，可以使用 `npm run deploy:legacy`，但那不是正式平台路線。
 
-目前這個專案正在往 Astro v6 遷移。新的骨架會輸出到 `dist/`，而不是舊版的 `public/`。
+## 正式部署流程
 
-本地開發：
+### 1. 安裝依賴
 
 ```bash
-npm run dev
+npm install
 ```
 
-建置：
+### 2. 建置專案
 
 ```bash
 npm run build
 ```
 
-部署到 Cloudflare Pages：
+### 3. 部署到 Cloudflare Pages
 
 ```bash
 npm run deploy
 ```
 
-## 部署到 GitHub Pages
+`package.json` 目前的正式部署腳本會把 `dist/` 推到 Cloudflare Pages。
 
-### 步驟 1：建立 GitHub Repository
+## D1 Migration
 
-1. 在 GitHub 上建立新的 repository
-2. 將本地專案推送到 GitHub：
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: PawsHome pet adoption platform"
-git branch -M main
-git remote add origin https://github.com/你的使用者名稱/你的repo名稱.git
-git push -u origin main
-```
-
-### 步驟 2：啟用 GitHub Pages
-
-1. 進入你的 GitHub repository
-2. 點擊 **Settings** > **Pages**
-3. 在 **Source** 選擇 **GitHub Actions**
-4. 完成！你的網站會自動部署
-
-### 步驟 3：訪問你的網站
-
-部署完成後，你的網站會在：
-```
-https://你的使用者名稱.github.io/你的repo名稱/
-```
-
-## 部署到 Cloudflare Pages
-
-### 方法 1：使用 Wrangler CLI
-
-```bash
-# 安裝依賴
-pnpm install
-
-# 部署 Astro / Functions 版本
-pnpm deploy
-```
-
-如果你有更新 D1 schema，先把 migration 套到遠端資料庫：
+如果你有更新資料表結構，先套用 migration 到遠端 D1：
 
 ```bash
 npx -y wrangler@4.92.0 d1 migrations apply paws --remote
 ```
 
-### 方法 2：透過 Cloudflare Dashboard
+本機測試若要套用 migration，可以使用本專案現有的 Wrangler 指令流程。
 
-1. 登入 [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. 進入 **Pages** > **Create a project**
-3. 連接你的 GitHub repository
-4. 設定建置配置：
-   - **Build command**: `npm run build`
-   - **Build output directory**: `dist`
-5. 點擊 **Save and Deploy**
+## 會員寄信設定
 
-## 部署到 Vercel
+會員註冊目前會透過 MailChannels Email API 寄出臨時密碼。
 
-```bash
-# 安裝 Vercel CLI
-npm i -g vercel
+正式站要能寄信，至少要補這些設定：
 
-# 部署
-vercel --prod
-```
+1. `MAILCHANNELS_API_KEY`
+2. `MAIL_FROM_ADDRESS`
+3. `MAIL_FROM_NAME`
+4. 寄件網域 SPF：`include:relay.mailchannels.net`
+5. 寄件網域 `_mailchannels` TXT 授權紀錄
 
-設定：
-- **Framework Preset**: Other
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
+`MAIL_FROM_ADDRESS` 請使用你自己的正式網域信箱，例如 `hello@yourdomain.com`。  
+不要直接使用 `pages.dev` 當寄件地址，因為無法完成 MailChannels 所需的網域驗證。
 
-## 部署到 Netlify
+## 舊版靜態頁面
 
-### 方法 1：拖放部署
+舊版靜態首頁仍保留在 `public/`，只適合拿來看歷史版本或作為參考。
 
-1. 訪問 [Netlify Drop](https://app.netlify.com/drop)
-2. 直接拖放 `dist` 資料夾
-
-### 方法 2：Git 整合
-
-1. 登入 [Netlify](https://app.netlify.com/)
-2. 點擊 **Add new site** > **Import an existing project**
-3. 連接你的 GitHub repository
-4. 設定建置配置：
-   - **Build command**: `npm run build`
-   - **Publish directory**: `dist`
-5. 點擊 **Deploy site**
-
-## 自訂網域
-
-### GitHub Pages
-
-1. 在 repository 的 **Settings** > **Pages**
-2. 在 **Custom domain** 輸入你的網域
-3. 在你的 DNS 設定中添加 CNAME 記錄
-
-### Cloudflare Pages
-
-1. 在 Cloudflare Pages 專案設定中
-2. 點擊 **Custom domains**
-3. 添加你的網域
-
-## 環境變數設定
-
-如果你需要連接後端 API，在各平台設定環境變數：
-
-### GitHub Pages
-在 `.github/workflows/deploy.yml` 中添加：
-```yaml
-env:
-  API_URL: ${{ secrets.API_URL }}
-```
-
-### Cloudflare Pages
-在 Dashboard 的 **Settings** > **Environment variables** 添加
-
-### Vercel/Netlify
-在專案設定的 **Environment variables** 區域添加
-
-## 更新網站
-
-只需要推送新的 commit 到 GitHub：
+如果你要部署舊版靜態頁面：
 
 ```bash
-git add .
-git commit -m "Update content"
-git push
+npm run deploy:legacy
 ```
 
-GitHub Actions 會自動重新部署你的網站！
+這條路線不包含現在的會員、收藏、後台與 D1 API。
 
-## 疑難排解
+## 非正式路線說明
 
-### 樣式或 JS 沒有載入
+目前這個專案的正式架構依賴 Cloudflare Pages Functions 與 D1，因此不建議把完整站點直接搬到 GitHub Pages、Vercel 或 Netlify。
 
-如果部署後樣式沒有正確載入，可能是路徑問題。
+如果你要換平台，會需要另外處理：
 
-在 `public/index.html` 中，確保資源路徑正確：
+- API 路由的執行環境
+- D1 的資料存取替代方案
+- 會員 session 與收藏同步流程
+- MailChannels 寄信設定
 
-```html
-<!-- 如果部署在子目錄，使用相對路徑 -->
-<link rel="stylesheet" href="./styles.css">
-<script src="./script.js"></script>
+## 補充
 
-<!-- 或使用絕對路徑 -->
-<link rel="stylesheet" href="/styles.css">
-<script src="/script.js"></script>
-```
-
-### GitHub Pages 404 錯誤
-
-確保：
-1. `public` 資料夾包含 `index.html`
-2. GitHub Actions workflow 正確設定
-3. Pages 設定中選擇了 **GitHub Actions** 作為 source
-
-## 效能優化建議
-
-部署前可以做的優化：
-
-1. **壓縮圖片**：使用 WebP 格式
-2. **最小化 CSS/JS**：使用建置工具
-3. **啟用快取**：在 Cloudflare 或 CDN 設定
-4. **使用 CDN**：加速全球訪問
-
-## 監控與分析
-
-### Google Analytics
-
-在 `public/index.html` 的 `<head>` 中添加：
-
-```html
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'GA_MEASUREMENT_ID');
-</script>
-```
-
-### Cloudflare Web Analytics
-
-在 Cloudflare Pages 設定中啟用 Web Analytics，無需修改程式碼。
+- 目前正式建置輸出是 `dist/`
+- `npm run dev` 是 Astro 開發模式
+- `npm run dev:pages` 是模擬 Pages 入口的方式

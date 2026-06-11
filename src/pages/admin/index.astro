@@ -30,6 +30,8 @@ import SectionHeader from '../../components/SectionHeader.astro';
             <button class="btn-outline" type="button" id="admin-refresh">重新整理</button>
             <a class="btn-primary" href="/apply">查看申請入口</a>
             <a class="btn-outline" href="/admin/pets">毛孩管理</a>
+            <a class="btn-outline" href="/admin/stories">成功故事管理</a>
+            <a class="btn-outline" href="/admin/shelters">收容所管理</a>
           </div>
         </div>
       </div>
@@ -57,6 +59,16 @@ import SectionHeader from '../../components/SectionHeader.astro';
             <p class="section-eyebrow">Favorites</p>
             <strong data-admin-stat="totalFavorites">-</strong>
             <span>收藏總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Shelters</p>
+            <strong data-admin-stat="totalShelters">-</strong>
+            <span>收容所數量</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Stories</p>
+            <strong data-admin-stat="totalStories">-</strong>
+            <span>成功故事數量</span>
           </article>
         </div>
       </div>
@@ -105,7 +117,7 @@ import SectionHeader from '../../components/SectionHeader.astro';
                     <th>時間</th>
                     <th>毛孩</th>
                     <th>位置</th>
-                    <th>匿名 ID</th>
+                    <th>擁有者 ID</th>
                   </tr>
                 </thead>
                 <tbody id="favorites-table-body">
@@ -127,6 +139,8 @@ import SectionHeader from '../../components/SectionHeader.astro';
       totalAdoptions: document.querySelector('[data-admin-stat="totalAdoptions"]'),
       pendingAdoptions: document.querySelector('[data-admin-stat="pendingAdoptions"]'),
       totalFavorites: document.querySelector('[data-admin-stat="totalFavorites"]'),
+      totalShelters: document.querySelector('[data-admin-stat="totalShelters"]'),
+      totalStories: document.querySelector('[data-admin-stat="totalStories"]'),
     };
     const adoptionsBody = document.querySelector('#adoptions-table-body');
     const favoritesBody = document.querySelector('#favorites-table-body');
@@ -188,7 +202,7 @@ import SectionHeader from '../../components/SectionHeader.astro';
           <tr>
             <td>${escapeHtml(formatDate(item.createdAt))}</td>
             <td>
-              <a href="/pets/${escapeHtml(item.petId)}">${escapeHtml(item.petEmoji || '🐾')} ${escapeHtml(item.petName)}</a>
+              <a href="/pets?id=${encodeURIComponent(item.petId)}">${escapeHtml(item.petEmoji || '🐾')} ${escapeHtml(item.petName)}</a>
               <div class="admin-table-subtitle">${escapeHtml(item.petLocation || '')}</div>
             </td>
             <td>
@@ -208,7 +222,7 @@ import SectionHeader from '../../components/SectionHeader.astro';
         <tr>
           <td>${escapeHtml(formatDate(item.favoriteCreatedAt))}</td>
           <td>
-            <a href="/pets/${escapeHtml(item.pet.id)}">${escapeHtml(item.pet.emoji)} ${escapeHtml(item.pet.name)}</a>
+            <a href="/pets?id=${encodeURIComponent(item.pet.id)}">${escapeHtml(item.pet.emoji)} ${escapeHtml(item.pet.name)}</a>
             <div class="admin-table-subtitle">${escapeHtml(item.pet.location)}</div>
           </td>
           <td>${escapeHtml(item.pet.location)}</td>
@@ -235,6 +249,8 @@ import SectionHeader from '../../components/SectionHeader.astro';
       if (adminStats.totalAdoptions) adminStats.totalAdoptions.textContent = String(summary.totalAdoptions ?? 0);
       if (adminStats.pendingAdoptions) adminStats.pendingAdoptions.textContent = String(summary.pendingAdoptions ?? 0);
       if (adminStats.totalFavorites) adminStats.totalFavorites.textContent = String(summary.totalFavorites ?? 0);
+      if (adminStats.totalShelters) adminStats.totalShelters.textContent = String(summary.totalShelters ?? 0);
+      if (adminStats.totalStories) adminStats.totalStories.textContent = String(summary.totalStories ?? 0);
 
       const adoptions = Array.isArray(adoptionsData.results) ? adoptionsData.results : [];
       const favorites = Array.isArray(favoritesData.results) ? favoritesData.results : [];
