@@ -1,0 +1,271 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="申請詳情 - PawsHome"
+  description="查看單筆領養申請的完整資料與審核狀態。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="申請詳情"
+          description="從後台列表點進來，查看單筆申請的完整內容與審核狀態。"
+        />
+
+        <div class="search-card fade-in is-visible admin-detail-shell">
+          <div class="admin-detail-toolbar">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/apply">查看申請入口</a>
+          </div>
+          <div class="admin-detail-status-row">
+            <span class="admin-panel-note" id="detail-id">等待載入</span>
+            <div id="detail-status-badge"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-detail-grid">
+          <article class="search-card fade-in is-visible admin-detail-card">
+            <p class="section-eyebrow">Application</p>
+            <h3 id="detail-title">載入中...</h3>
+            <p class="pet-description" id="detail-subtitle">正在讀取申請內容。</p>
+
+            <div class="admin-detail-meta">
+              <div>
+                <span class="admin-detail-label">申請人</span>
+                <strong id="detail-name">-</strong>
+              </div>
+              <div>
+                <span class="admin-detail-label">Email</span>
+                <strong id="detail-email">-</strong>
+              </div>
+              <div>
+                <span class="admin-detail-label">電話</span>
+                <strong id="detail-phone">-</strong>
+              </div>
+              <div>
+                <span class="admin-detail-label">送出時間</span>
+                <strong id="detail-created-at">-</strong>
+              </div>
+              <div>
+                <span class="admin-detail-label">更新時間</span>
+                <strong id="detail-updated-at">-</strong>
+              </div>
+            </div>
+
+            <div class="admin-detail-note-block">
+              <span class="admin-detail-label">申請備註</span>
+              <p id="detail-note" class="admin-detail-note">-</p>
+            </div>
+
+            <div class="hero-actions admin-detail-actions">
+              <button class="btn-outline" type="button" data-detail-action="pending" disabled>改回待處理</button>
+              <button class="btn-primary" type="button" data-detail-action="approved" disabled>核准</button>
+              <button class="btn-outline" type="button" data-detail-action="rejected" disabled>拒絕</button>
+            </div>
+          </article>
+
+          <aside class="search-card fade-in is-visible admin-detail-card">
+            <p class="section-eyebrow">Pet Profile</p>
+            <div class="admin-detail-pet" id="pet-profile">
+              <div class="admin-detail-pet-emoji" id="pet-emoji">🐾</div>
+              <div>
+                <h3 id="pet-name">等待資料</h3>
+                <p class="pet-description" id="pet-description">這裡會顯示對應的毛孩資訊。</p>
+              </div>
+            </div>
+
+            <div class="admin-detail-meta compact">
+              <div>
+                <span class="admin-detail-label">品種 / 性別</span>
+                <strong id="pet-profile-line">-</strong>
+              </div>
+              <div>
+                <span class="admin-detail-label">年齡 / 體型</span>
+                <strong id="pet-profile-age-size">-</strong>
+              </div>
+              <div>
+                <span class="admin-detail-label">所在地</span>
+                <strong id="pet-location">-</strong>
+              </div>
+              <div>
+                <span class="admin-detail-label">標籤</span>
+                <strong id="pet-tags">-</strong>
+              </div>
+            </div>
+
+            <div class="admin-detail-note-block">
+              <span class="admin-detail-label">毛孩故事</span>
+              <p id="pet-story" class="admin-detail-note">-</p>
+            </div>
+
+            <div class="hero-actions admin-detail-actions">
+              <a class="btn-outline" id="pet-link" href="/pets">查看毛孩頁</a>
+              <a class="btn-primary" id="apply-link" href="/apply">到申請表單</a>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const detailId = document.querySelector('#detail-id');
+    const detailStatusBadge = document.querySelector('#detail-status-badge');
+    const detailTitle = document.querySelector('#detail-title');
+    const detailSubtitle = document.querySelector('#detail-subtitle');
+    const detailName = document.querySelector('#detail-name');
+    const detailEmail = document.querySelector('#detail-email');
+    const detailPhone = document.querySelector('#detail-phone');
+    const detailCreatedAt = document.querySelector('#detail-created-at');
+    const detailUpdatedAt = document.querySelector('#detail-updated-at');
+    const detailNote = document.querySelector('#detail-note');
+    const detailActions = document.querySelectorAll('[data-detail-action]');
+    const petEmoji = document.querySelector('#pet-emoji');
+    const petName = document.querySelector('#pet-name');
+    const petDescription = document.querySelector('#pet-description');
+    const petProfileLine = document.querySelector('#pet-profile-line');
+    const petProfileAgeSize = document.querySelector('#pet-profile-age-size');
+    const petLocation = document.querySelector('#pet-location');
+    const petTags = document.querySelector('#pet-tags');
+    const petStory = document.querySelector('#pet-story');
+    const petLink = document.querySelector('#pet-link');
+    const applyLink = document.querySelector('#apply-link');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const formatDate = (value) => {
+      if (!value) return '-';
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+
+      return new Intl.DateTimeFormat('zh-TW', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date);
+    };
+
+    const renderBadge = (status) => {
+      if (status === 'pending') return '<span class="admin-badge pending">待處理</span>';
+      if (status === 'approved') return '<span class="admin-badge approved">已核准</span>';
+      if (status === 'rejected') return '<span class="admin-badge rejected">已拒絕</span>';
+      return `<span class="admin-badge">${escapeHtml(status || '-')}</span>`;
+    };
+
+    const setLoadingState = (message) => {
+      if (detailTitle) detailTitle.textContent = message;
+      if (detailSubtitle) detailSubtitle.textContent = '請稍候。';
+    };
+
+    const loadAdoptionDetail = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id')?.trim() || '';
+
+      if (!id) {
+        if (detailId) detailId.textContent = '缺少申請 ID';
+        if (detailTitle) detailTitle.textContent = '尚未選擇申請';
+        if (detailSubtitle) detailSubtitle.textContent = '請從後台列表點選「查看詳情」。';
+        if (detailStatusBadge) detailStatusBadge.innerHTML = '<span class="admin-badge">未指定</span>';
+        return;
+      }
+
+      if (detailId) detailId.textContent = `申請 ID：${id}`;
+      setLoadingState('載入中...');
+
+      const response = await fetch(`/api/admin/adoptions/${encodeURIComponent(id)}`);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || '讀取申請詳情失敗');
+      }
+
+      const adoption = data.adoption || {};
+      const pet = adoption.pet || {};
+
+      if (detailTitle) detailTitle.textContent = `${adoption.fullName || '-'} 的申請`;
+      if (detailSubtitle) {
+        detailSubtitle.textContent = `${pet.emoji || '🐾'} ${pet.name || '未知毛孩'} · ${adoption.status || '-'}`;
+      }
+      if (detailStatusBadge) detailStatusBadge.innerHTML = renderBadge(adoption.status);
+      if (detailName) detailName.textContent = adoption.fullName || '-';
+      if (detailEmail) detailEmail.textContent = adoption.email || '-';
+      if (detailPhone) detailPhone.textContent = adoption.phone || '-';
+      if (detailCreatedAt) detailCreatedAt.textContent = formatDate(adoption.createdAt);
+      if (detailUpdatedAt) detailUpdatedAt.textContent = formatDate(adoption.updatedAt);
+      if (detailNote) detailNote.textContent = adoption.note || '沒有填寫備註。';
+
+      if (petEmoji) petEmoji.textContent = pet.emoji || '🐾';
+      if (petName) petName.textContent = pet.name || '-';
+      if (petDescription) petDescription.textContent = pet.description || '沒有提供毛孩描述。';
+      if (petProfileLine) petProfileLine.textContent = `${pet.species || '-'} / ${pet.gender || '-'}`;
+      if (petProfileAgeSize) petProfileAgeSize.textContent = `${pet.age || '-'} / ${pet.size || '-'}`;
+      if (petLocation) petLocation.textContent = pet.location || '-';
+      if (petTags) petTags.textContent = Array.isArray(pet.tags) && pet.tags.length ? pet.tags.join('、') : '-';
+      if (petStory) petStory.textContent = pet.story || '沒有提供毛孩故事。';
+      if (petLink) petLink.setAttribute('href', `/pets/${encodeURIComponent(pet.id || '')}`);
+      if (applyLink) applyLink.setAttribute('href', `/apply?pet=${encodeURIComponent(pet.id || '')}`);
+
+      detailActions.forEach((button) => {
+        button.disabled = false;
+        button.dataset.currentId = adoption.id || '';
+      });
+    };
+
+    const updateAdoptionStatus = async (id, status) => {
+      const response = await fetch(`/api/admin/adoptions/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || '更新申請狀態失敗');
+      }
+
+      window.PawsHomeUI?.showNotification?.(data.message || '申請已更新。');
+      await loadAdoptionDetail();
+    };
+
+    detailActions.forEach((button) => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.currentId;
+        const status = button.dataset.detailAction;
+        if (!id || !status) return;
+
+        updateAdoptionStatus(id, status).catch(() => {
+          window.PawsHomeUI?.showNotification?.('更新失敗，請稍後再試。');
+        });
+      });
+    });
+
+    loadAdoptionDetail().catch(() => {
+      if (detailTitle) detailTitle.textContent = '資料載入失敗';
+      if (detailSubtitle) detailSubtitle.textContent = '請稍後再試。';
+      if (detailStatusBadge) detailStatusBadge.innerHTML = '<span class="admin-badge">載入失敗</span>';
+    });
+  </script>
+</BaseLayout>

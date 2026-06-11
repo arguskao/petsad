@@ -4,8 +4,6 @@ import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import SectionHeader from '../../components/SectionHeader.astro';
 import SearchBar from '../../components/SearchBar.astro';
-import PetCard from '../../components/PetCard.astro';
-import { pets } from '../../data/pets';
 ---
 
 <BaseLayout title="尋找毛孩 - PawsHome" description="瀏覽全部等待領養的毛孩，找到最適合你的夥伴。">
@@ -23,6 +21,9 @@ import { pets } from '../../data/pets';
           <h3>篩選條件</h3>
           <SearchBar />
           <p class="pet-results-meta" id="pet-results-meta" aria-live="polite"></p>
+          <p class="favorite-prompt">
+            你目前收藏 <strong data-favorite-count>0</strong> 隻毛孩，<a href="/favorites">去看看收藏清單</a>
+          </p>
           <p class="pet-empty-state" id="pet-empty-state" hidden>沒有找到符合條件的毛孩，試試調整篩選條件。</p>
         </div>
       </div>
@@ -30,22 +31,38 @@ import { pets } from '../../data/pets';
 
     <section class="featured-pets">
       <div class="container">
-        <div class="pets-grid" id="pets-grid">
-          {pets.map((pet) => <PetCard pet={pet} />)}
-        </div>
+        <div class="pets-grid" id="pets-grid" aria-live="polite"></div>
       </div>
     </section>
   </main>
 
   <Footer />
 
-  <script is:inline define:vars={{ totalPets: pets.length }}>
+  <script is:inline>
     const form = document.querySelector('[data-pet-filter-form]');
     const selects = Array.from(document.querySelectorAll('[data-filter-select]'));
-    const cards = Array.from(document.querySelectorAll('.pet-card'));
     const resultMeta = document.querySelector('#pet-results-meta');
     const emptyState = document.querySelector('#pet-empty-state');
     const grid = document.querySelector('#pets-grid');
+    const loadingState = document.createElement('p');
+    loadingState.className = 'pet-results-meta';
+    loadingState.textContent = '正在載入毛孩資料...';
+
+    const state = {
+      type: 'all',
+      age: 'any',
+      size: 'any',
+      area: 'all',
+    };
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
     const allowed = {
       type: new Set(['all', 'dog', 'cat', 'other']),
       age: new Set(['any', 'young', 'adult', 'senior']),
@@ -57,13 +74,6 @@ import { pets } from '../../data/pets';
       const fallback = key === 'age' || key === 'size' ? 'any' : 'all';
       const normalized = (value || fallback).toString();
       return allowed[key].has(normalized) ? normalized : fallback;
-    };
-
-    const state = {
-      type: 'all',
-      age: 'any',
-      size: 'any',
-      area: 'all',
     };
 
     const applyStateToControls = () => {
@@ -86,34 +96,100 @@ import { pets } from '../../data/pets';
       window.history.replaceState({}, '', nextUrl);
     };
 
-    const renderResults = () => {
-      let visibleCount = 0;
-
-      cards.forEach((card) => {
-        const matchType = state.type === 'all' || card.dataset.pet === state.type;
-        const matchAge = state.age === 'any' || card.dataset.ageGroup === state.age;
-        const matchSize = state.size === 'any' || card.dataset.sizeGroup === state.size;
-        const matchArea = state.area === 'all' || card.dataset.locationKey === state.area;
-        const visible = matchType && matchAge && matchSize && matchArea;
-
-        card.hidden = !visible;
-        card.classList.toggle('is-hidden', !visible);
-
-        if (visible) visibleCount += 1;
-      });
-
+    const updateMeta = (visibleCount, totalCount) => {
       if (resultMeta) {
-        resultMeta.textContent = visibleCount === totalPets
+        resultMeta.textContent = visibleCount === totalCount
           ? `目前顯示全部 ${visibleCount} 隻毛孩`
-          : `找到 ${visibleCount} / ${totalPets} 隻符合條件的毛孩`;
-      }
-
-      if (grid) {
-        grid.dataset.empty = String(visibleCount === 0);
+          : `找到 ${visibleCount} / ${totalCount} 隻符合條件的毛孩`;
       }
 
       if (emptyState) {
         emptyState.hidden = visibleCount !== 0;
+      }
+    };
+
+    const renderPetCard = (pet) => `
+      <article
+        class="pet-card fade-in is-visible"
+        data-pet="${escapeHtml(pet.species)}"
+        data-age-group="${escapeHtml(pet.ageGroup)}"
+        data-size-group="${escapeHtml(pet.sizeGroup)}"
+        data-location-key="${escapeHtml(pet.locationKey)}"
+        data-favorite-pet-id="${escapeHtml(pet.id)}"
+      >
+        <div class="pet-image">
+          ${pet.badge ? `<div class="pet-badge ${escapeHtml(pet.badge.tone)}">${escapeHtml(pet.badge.label)}</div>` : ''}
+          <div class="pet-placeholder">
+            <span class="pet-emoji">${escapeHtml(pet.emoji)}</span>
+          </div>
+          <button
+            class="favorite-btn"
+            type="button"
+            aria-label="收藏 ${escapeHtml(pet.name)}"
+            aria-pressed="false"
+            data-favorite-button
+            data-favorite-id="${escapeHtml(pet.id)}"
+            data-favorite-name="${escapeHtml(pet.name)}"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 21L10.55 19.7C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 19.7L12 21Z"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="pet-info">
+          <div class="pet-header">
+            <h3>${escapeHtml(pet.name)}</h3>
+            <span class="pet-gender ${escapeHtml(pet.gender)}">${pet.gender === 'male' ? '♂' : '♀'}</span>
+          </div>
+
+          <div class="pet-details">
+            <span class="detail-item">🎂 ${escapeHtml(pet.age)}</span>
+            <span class="detail-item">📏 ${escapeHtml(pet.size)}</span>
+            <span class="detail-item">📍 ${escapeHtml(pet.location)}</span>
+          </div>
+
+          <p class="pet-description">${escapeHtml(pet.description)}</p>
+
+          <div class="pet-tags">
+            ${pet.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+
+          <a class="btn-primary full-width" href="/pets/${escapeHtml(pet.id)}">了解更多</a>
+        </div>
+      </article>
+    `;
+
+    const fetchPets = async () => {
+      if (!grid) return;
+
+      grid.innerHTML = '';
+      grid.appendChild(loadingState);
+
+      const params = new URLSearchParams();
+      Object.entries(state).forEach(([key, value]) => {
+        if (value === 'all' || value === 'any') return;
+        params.set(key, value);
+      });
+
+      const url = params.toString() ? `/api/pets?${params.toString()}` : '/api/pets';
+      const response = await fetch(url);
+      const data = await response.json();
+      const pets = Array.isArray(data.results) ? data.results : [];
+
+      grid.innerHTML = pets.map(renderPetCard).join('');
+      updateMeta(data.count ?? pets.length, data.total ?? pets.length);
+
+      window.PawsHomeFavorites?.syncButtons();
+
+      if (pets.length === 0) {
+        grid.dataset.empty = 'true';
+      } else {
+        delete grid.dataset.empty;
       }
     };
 
@@ -124,7 +200,18 @@ import { pets } from '../../data/pets';
       state.size = normalize('size', params.get('size'));
       state.area = normalize('area', params.get('area'));
       applyStateToControls();
-      renderResults();
+      fetchPets().catch(() => {
+        if (grid) {
+          grid.innerHTML = '';
+        }
+        if (resultMeta) {
+          resultMeta.textContent = '資料載入失敗，請稍後再試。';
+        }
+        if (emptyState) {
+          emptyState.hidden = false;
+          emptyState.textContent = '資料載入失敗，請稍後再試。';
+        }
+      });
     };
 
     form?.addEventListener('submit', (event) => {
@@ -135,14 +222,22 @@ import { pets } from '../../data/pets';
       state.size = normalize('size', formData.get('size'));
       state.area = normalize('area', formData.get('area'));
       updateUrl();
-      renderResults();
+      fetchPets().catch(() => {
+        if (resultMeta) {
+          resultMeta.textContent = '資料載入失敗，請稍後再試。';
+        }
+      });
     });
 
     selects.forEach((select) => {
       select.addEventListener('change', () => {
         state[select.name] = normalize(select.name, select.value);
         updateUrl();
-        renderResults();
+        fetchPets().catch(() => {
+          if (resultMeta) {
+            resultMeta.textContent = '資料載入失敗，請稍後再試。';
+          }
+        });
       });
     });
 

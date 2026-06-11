@@ -84,12 +84,13 @@ npm install
 npm run dev
 ```
 
-訪問 http://localhost:8787 查看網站
+預設會啟動 Astro v6 開發伺服器。
 
-如果你要看 Astro v6 骨架：
+如果你要驗證完整的 Cloudflare Pages + Functions 流程：
 
 ```bash
-npm run dev:astro
+npm run build:astro
+npm run dev:pages
 ```
 
 ### 3. 部署到 Cloudflare Pages
@@ -98,11 +99,10 @@ npm run dev:astro
 npm run deploy
 ```
 
-Astro 版本則使用：
+Astro 版本與正式 API 路線已經是預設路徑；如果你要先看靜態舊版：
 
 ```bash
-npm run build:astro
-npm run deploy:astro
+npm run deploy:legacy
 ```
 
 ## 客製化指南
@@ -136,9 +136,21 @@ npm run deploy:astro
 3. 如果要改成真實照片，優先把資料放進 `src/data/pets.ts`
 4. 建議使用 WebP 格式以優化載入速度
 
+### 連接 D1 資料庫
+
+這個專案已經先建立 Cloudflare D1 `paws`，並且在 `wrangler.toml` 綁定成同名 `paws` binding。
+
+如果你有新增 migration，記得套用到遠端資料庫：
+
+```bash
+npx -y wrangler@4.92.0 d1 migrations apply paws --remote
+```
+
+本地開發如果要模擬 D1，也可以用 Pages dev 搭配 `--d1` 綁定。
+
 ### 連接後端 API
 
-在 `public/script.js` 中連接你的寵物資料庫：
+在前端中連接你的寵物 API：
 
 ```javascript
 // 搜尋寵物
@@ -161,7 +173,7 @@ async function favoritePet(petId) {
 
 ### 連接後端 API
 
-在 `public/script.js` 中的按鈕事件處理器添加你的 API 呼叫：
+在前端互動事件處理器中添加你的 API 呼叫：
 
 ```javascript
 button.addEventListener('click', async (e) => {

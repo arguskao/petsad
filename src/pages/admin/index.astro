@@ -1,0 +1,294 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="管理後台 - PawsHome"
+  description="檢視最新領養申請與收藏統計的最小版管理入口。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="管理後台"
+          description="最小版管理入口，先看申請與收藏資料，再慢慢長出完整後台。"
+        />
+
+        <div class="search-card fade-in is-visible">
+          <h3>後台提示</h3>
+          <p class="pet-description">
+            這個頁面目前沒有登入驗證，先作為內部管理入口。之後會再補上權限與編輯流程。
+          </p>
+          <div class="hero-actions">
+            <button class="btn-outline" type="button" id="admin-refresh">重新整理</button>
+            <a class="btn-primary" href="/apply">查看申請入口</a>
+            <a class="btn-outline" href="/admin/pets">毛孩管理</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="admin-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Pets</p>
+            <strong data-admin-stat="totalPets">-</strong>
+            <span>毛孩總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Adoptions</p>
+            <strong data-admin-stat="totalAdoptions">-</strong>
+            <span>申請總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Pending</p>
+            <strong data-admin-stat="pendingAdoptions">-</strong>
+            <span>待處理申請</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Favorites</p>
+            <strong data-admin-stat="totalFavorites">-</strong>
+            <span>收藏總數</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-grid">
+          <article class="admin-panel search-card fade-in is-visible">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Applications</p>
+                <h3>最近申請</h3>
+              </div>
+              <span class="admin-panel-note" id="adoptions-count">-</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>時間</th>
+                    <th>毛孩</th>
+                    <th>申請人</th>
+                    <th>狀態</th>
+                  </tr>
+                </thead>
+                <tbody id="adoptions-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="admin-panel search-card fade-in is-visible">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Favorites</p>
+                <h3>最近收藏</h3>
+              </div>
+              <span class="admin-panel-note" id="favorites-count">-</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>時間</th>
+                    <th>毛孩</th>
+                    <th>位置</th>
+                    <th>匿名 ID</th>
+                  </tr>
+                </thead>
+                <tbody id="favorites-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const adminStats = {
+      totalPets: document.querySelector('[data-admin-stat="totalPets"]'),
+      totalAdoptions: document.querySelector('[data-admin-stat="totalAdoptions"]'),
+      pendingAdoptions: document.querySelector('[data-admin-stat="pendingAdoptions"]'),
+      totalFavorites: document.querySelector('[data-admin-stat="totalFavorites"]'),
+    };
+    const adoptionsBody = document.querySelector('#adoptions-table-body');
+    const favoritesBody = document.querySelector('#favorites-table-body');
+    const adoptionsCount = document.querySelector('#adoptions-count');
+    const favoritesCount = document.querySelector('#favorites-count');
+    const refreshButton = document.querySelector('#admin-refresh');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const formatDate = (value) => {
+      if (!value) return '-';
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+
+      return new Intl.DateTimeFormat('zh-TW', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date);
+    };
+
+    const renderBadge = (status) => {
+      if (status === 'pending') return '<span class="admin-badge pending">待處理</span>';
+      if (status === 'approved') return '<span class="admin-badge approved">已核准</span>';
+      if (status === 'rejected') return '<span class="admin-badge rejected">已拒絕</span>';
+      return `<span class="admin-badge">${escapeHtml(status || '-')}</span>`;
+    };
+
+    const renderActionButtons = (item) => {
+      if (item.status !== 'pending') {
+        return `
+          <div class="admin-row-actions">
+            <button class="admin-action-btn secondary" type="button" data-adoption-action="pending" data-adoption-id="${escapeHtml(item.id)}">改回待處理</button>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="admin-row-actions">
+          <button class="admin-action-btn approve" type="button" data-adoption-action="approved" data-adoption-id="${escapeHtml(item.id)}">核准</button>
+          <button class="admin-action-btn reject" type="button" data-adoption-action="rejected" data-adoption-id="${escapeHtml(item.id)}">拒絕</button>
+        </div>
+      `;
+    };
+
+    const renderRows = (items, kind) => {
+      if (!items.length) {
+        return `<tr><td colspan="${kind === 'adoptions' ? 4 : 4}">目前沒有資料</td></tr>`;
+      }
+
+      if (kind === 'adoptions') {
+      return items.map((item) => `
+          <tr>
+            <td>${escapeHtml(formatDate(item.createdAt))}</td>
+            <td>
+              <a href="/pets/${escapeHtml(item.petId)}">${escapeHtml(item.petEmoji || '🐾')} ${escapeHtml(item.petName)}</a>
+              <div class="admin-table-subtitle">${escapeHtml(item.petLocation || '')}</div>
+            </td>
+            <td>
+              <strong>${escapeHtml(item.fullName)}</strong>
+              <div class="admin-table-subtitle">${escapeHtml(item.email)}</div>
+            </td>
+            <td>
+              ${renderBadge(item.status)}
+              ${renderActionButtons(item)}
+              <a class="admin-row-link" href="/admin/adoptions?id=${encodeURIComponent(item.id)}">查看詳情</a>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      return items.map((item) => `
+        <tr>
+          <td>${escapeHtml(formatDate(item.favoriteCreatedAt))}</td>
+          <td>
+            <a href="/pets/${escapeHtml(item.pet.id)}">${escapeHtml(item.pet.emoji)} ${escapeHtml(item.pet.name)}</a>
+            <div class="admin-table-subtitle">${escapeHtml(item.pet.location)}</div>
+          </td>
+          <td>${escapeHtml(item.pet.location)}</td>
+          <td><code>${escapeHtml(item.clientId)}</code></td>
+        </tr>
+      `).join('');
+    };
+
+    const loadAdminData = async () => {
+      const [summaryResponse, adoptionsResponse, favoritesResponse] = await Promise.all([
+        fetch('/api/admin/summary'),
+        fetch('/api/admin/adoptions?limit=8'),
+        fetch('/api/admin/favorites?limit=8'),
+      ]);
+
+      const [summaryData, adoptionsData, favoritesData] = await Promise.all([
+        summaryResponse.json(),
+        adoptionsResponse.json(),
+        favoritesResponse.json(),
+      ]);
+
+      const summary = summaryData.summary || {};
+      if (adminStats.totalPets) adminStats.totalPets.textContent = String(summary.totalPets ?? 0);
+      if (adminStats.totalAdoptions) adminStats.totalAdoptions.textContent = String(summary.totalAdoptions ?? 0);
+      if (adminStats.pendingAdoptions) adminStats.pendingAdoptions.textContent = String(summary.pendingAdoptions ?? 0);
+      if (adminStats.totalFavorites) adminStats.totalFavorites.textContent = String(summary.totalFavorites ?? 0);
+
+      const adoptions = Array.isArray(adoptionsData.results) ? adoptionsData.results : [];
+      const favorites = Array.isArray(favoritesData.results) ? favoritesData.results : [];
+
+      if (adoptionsBody) adoptionsBody.innerHTML = renderRows(adoptions, 'adoptions');
+      if (favoritesBody) favoritesBody.innerHTML = renderRows(favorites, 'favorites');
+      if (adoptionsCount) adoptionsCount.textContent = `${adoptions.length} 筆`;
+      if (favoritesCount) favoritesCount.textContent = `${favorites.length} 筆`;
+    };
+
+    const updateAdoptionStatus = async (id, status) => {
+      const response = await fetch(`/api/admin/adoptions/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || '更新申請狀態失敗');
+      }
+
+      window.PawsHomeUI?.showNotification?.(data.message || '申請已更新。');
+      await loadAdminData();
+    };
+
+    adoptionsBody?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const button = target.closest('[data-adoption-action]');
+      if (!button) return;
+
+      const id = button.getAttribute('data-adoption-id');
+      const status = button.getAttribute('data-adoption-action');
+      if (!id || !status) return;
+
+      updateAdoptionStatus(id, status).catch(() => {
+        window.PawsHomeUI?.showNotification?.('更新失敗，請稍後再試。');
+      });
+    });
+
+    refreshButton?.addEventListener('click', () => {
+      loadAdminData().catch(() => {
+        if (adoptionsBody) adoptionsBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+        if (favoritesBody) favoritesBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+      });
+    });
+
+    loadAdminData().catch(() => {
+      if (adoptionsBody) adoptionsBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+      if (favoritesBody) favoritesBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+    });
+  </script>
+</BaseLayout>

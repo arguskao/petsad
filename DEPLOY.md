@@ -8,19 +8,19 @@
 本地開發：
 
 ```bash
-npm run dev:astro
+npm run dev
 ```
 
 建置：
 
 ```bash
-npm run build:astro
+npm run build
 ```
 
 部署到 Cloudflare Pages：
 
 ```bash
-npm run deploy:astro
+npm run deploy
 ```
 
 ## 部署到 GitHub Pages
@@ -61,8 +61,14 @@ https://你的使用者名稱.github.io/你的repo名稱/
 # 安裝依賴
 pnpm install
 
-# 部署舊版靜態首頁
+# 部署 Astro / Functions 版本
 pnpm deploy
+```
+
+如果你有更新 D1 schema，先把 migration 套到遠端資料庫：
+
+```bash
+npx -y wrangler@4.92.0 d1 migrations apply paws --remote
 ```
 
 ### 方法 2：透過 Cloudflare Dashboard
@@ -71,7 +77,7 @@ pnpm deploy
 2. 進入 **Pages** > **Create a project**
 3. 連接你的 GitHub repository
 4. 設定建置配置：
-   - **Build command**: `npm run build:astro`
+   - **Build command**: `npm run build`
    - **Build output directory**: `dist`
 5. 點擊 **Save and Deploy**
 
@@ -87,7 +93,7 @@ vercel --prod
 
 設定：
 - **Framework Preset**: Other
-- **Build Command**: `npm run build:astro`
+- **Build Command**: `npm run build`
 - **Output Directory**: `dist`
 
 ## 部署到 Netlify
@@ -103,7 +109,7 @@ vercel --prod
 2. 點擊 **Add new site** > **Import an existing project**
 3. 連接你的 GitHub repository
 4. 設定建置配置：
-   - **Build command**: `npm run build:astro`
+   - **Build command**: `npm run build`
    - **Publish directory**: `dist`
 5. 點擊 **Deploy site**
 

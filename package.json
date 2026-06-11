@@ -3,11 +3,14 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
-        "dev": "wrangler pages dev --port 8787",
+        "dev": "astro dev",
         "dev:astro": "astro dev",
-        "deploy": "wrangler pages deploy ./public",
+        "dev:pages": "wrangler pages dev ./dist --port 8787",
+        "dev:legacy": "wrangler pages dev --port 8787",
+        "deploy": "wrangler pages deploy ./dist",
         "deploy:astro": "wrangler pages deploy ./dist",
-        "build": "tsc",
+        "deploy:legacy": "wrangler pages deploy ./public",
+        "build": "astro build && tsc",
         "build:astro": "astro build",
         "preview:astro": "astro preview"
     },

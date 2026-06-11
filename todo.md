@@ -1,236 +1,180 @@
-# PawsHome 後續開發 TODO
+# PawsHome Roadmap
 
-這份清單的目標，是把目前的靜態宣傳頁，逐步做成一個可以真的使用的寵物領養平台。
+這份文件的目標，是把目前的 PawsHome 從靜態展示，逐步做成一個可長期擴充的寵物領養平台。
 
-如果你要走長期擴充路線，先看同層的 [architecture.md](/Users/user/Documents/Code2/HTML/paws/architecture.md)。
+如果你要先看系統怎麼拆，先讀同層的 [architecture.md](/Users/user/Documents/Code2/HTML/paws/architecture.md)。
 
-## 架構方向：Astro v6
+## 方向
 
-這個專案接下來會以 Astro v6 為主，搭配 Cloudflare Pages、Pages Functions、Hono、D1、R2、KV。
+- 前端：Astro v6
+- API：Cloudflare Pages Functions + Hono
+- 資料庫：Cloudflare D1
+- 資料綁定：`paws`
+- 之後擴充：R2、KV、Turnstile、會員與後台
 
-### 遷移原則
+## 現況
 
-- 先保留目前首頁內容與視覺
-- 先拆資料，再拆頁面
-- 先做內容頁與列表頁，再做會員與後台
-- 先讓功能可用，再優化體驗與結構
+- Astro v6 骨架已完成
+- `src/pages/`、`src/components/`、`src/data/`、`functions/api/` 都已建立
+- `wrangler.toml` 已綁定 D1 `paws`
+- `migrations/0001_init.sql` 已建立並套用到遠端
+- `migrations/0002_add_pet_status.sql` 已建立並套用到遠端
+- `/api/pets`、`/api/pets/:id`、`/api/stories`、`/api/shelters` 已可用
+- `/api/favorites` 已可用
+- `/api/admin/summary`、`/api/admin/adoptions`、`/api/admin/favorites` 已可用
+- `/api/admin/adoptions/:id` 已可用
+- `/api/admin/pets/:id` 已可用
+- `/api/admin/pets` 已可用
+- `POST /api/adoptions` 已寫入 `adoption_requests`
+- 收藏先走 localStorage，並同步到 `POST/DELETE /api/favorites`
+- `/pets` 頁已直接改成讀 `/api/pets`
+- `/pets/[id]` 頁已直接讀 `/api/pets/:id`
+- `/apply` 頁已接上申請流程，送出後會導到結果頁
+- `/favorites` 頁已可查看收藏清單
+- `/favorites` 頁已可清空收藏
+- `/favorites` 頁已可搜尋與排序收藏
+- 首頁、列表頁與導覽列已顯示收藏數量提示
+- `/admin` 最小版管理後台已建立，且後台頁已設定 `noindex`
+- `/admin` 已可核准 / 拒絕申請
+- `/admin/pets` 已可查看毛孩清單
+- `/admin/pets` 已可查看單筆毛孩詳情
+- `/admin/pets` 已可編輯毛孩資料
+- `/admin/pets` 已可下架 / 標記已領養 / 恢復上架
+- `/admin/adoptions` 已可查看單筆申請詳情
+- `pnpm run build` 已通過
 
-### 遷移順序
-
-1. 建立 Astro v6 專案骨架
-2. 把首頁搬到 `src/pages/index.astro`
-3. 把目前的靜態資源整理到 `public/`
-4. 把重複區塊拆成 `src/components/`
-5. 把資料移到 `src/data/`
-6. 再補 `functions/api/*`
-7. 最後接 D1 / R2 / KV
-
-### 目前進度
-
-- 已建立 `astro.config.mjs`
-- 已建立 `src/layouts/`、`src/components/`、`src/data/`、`src/pages/`
-- 已新增首頁、列表頁、詳情頁、故事頁、合作夥伴頁、申請頁骨架
-- 已保留舊版 `public/` 作為過渡參考
-- 已通過 `pnpm run build:astro`
-- 已完成列表頁篩選、寵物詳情頁與過渡 API
-
-### 先做哪幾個檔案
-
-- `src/pages/index.astro`
-- `src/components/Header.astro`
-- `src/components/Footer.astro`
-- `src/components/PetCard.astro`
-- `src/components/SectionHeader.astro`
-- `src/data/pets.ts`
-- `src/data/stories.ts`
-- `src/data/shelters.ts`
-- `src/styles/global.css`
-
-## 先做的事
-
-- [ ] 確認產品定位
-  - 是「領養資訊入口」還是「完整媒合平台」
-  - 先決定是否需要登入、收藏、申請表單、後台管理
-- [ ] 決定資料來源
-  - 先用假資料 JSON
-  - 或直接接後端 API / 資料庫
-- [ ] 定義首頁的主要轉換目標
-  - 點擊開始領養
-  - 搜尋毛孩
-  - 收藏寵物
-  - 提交領養意願
-
-## Astro v6 遷移 TODO
+## 已完成
 
 - [x] 建立 Astro v6 專案骨架
-  - 已建立等效的 Astro v6 骨架與設定
-  - 已保留 Cloudflare Pages 的部署方向
-  - 已確認 TypeScript 與 Astro build 可正常運作
-- [x] 搬移目前首頁內容
-  - Hero 區
-  - 搜尋預覽
-  - 精選毛孩
-  - 領養流程
-  - 成功故事
-  - 合作夥伴
-  - CTA 與 Footer
-- [x] 拆出可重用元件
-  - `Header`
-  - `Button`
-  - `PetCard`
-  - `StoryCard`
-  - `ShelterCard`
-  - `SectionHeader`
-- [x] 把資料抽離成模組
-  - `pets`
-  - `stories`
-  - `shelters`
-  - `navigation`
-  - `site config`
-- [x] 整理全域樣式
-  - 色彩變數
-  - 字級系統
-  - 間距系統
-  - 按鈕樣式
-  - 卡片樣式
-- [x] 保留互動效果
-  - 平滑捲動
-  - 收藏愛心
-  - 通知提示
-  - 滾動動畫
-  - 彩蛋效果
-- [x] 建立列表與詳情頁
-  - `/pets`
-  - `/pets/[id]`
-  - `/stories`
-  - `/shelters`
-- [x] 建立 API 路由
-  - Astro 過渡版先用 `/api/pets.json` 與 `/api/pets/[id].json`
-  - 之後改由 Pages Functions 提供正式 `/api/pets`
-  - `GET /api/pets`
-  - `GET /api/pets/:id`
-  - `POST /api/adoptions`
+- [x] 搬移首頁內容到 Astro 頁面
+- [x] 拆出共用元件
+- [x] 把內容資料整理成 `src/data/`
+- [x] 建立 `/pets`、`/pets/[id]`、`/stories`、`/shelters`、`/apply`
+- [x] 建立 Pages Functions API
+- [x] 接上 D1 `paws`
+- [x] 建立 migration 並套用遠端
+- [x] 讓 `/pets` 直接吃 API
+- [x] 讓 `/pets/[id]` 直接吃 API
+- [x] 讓 `/apply` 可以送出領養申請
+- [x] 讓收藏先可持久化
+  - localStorage 已可保存收藏狀態
+  - 已同步到 D1 `favorites`
+- [x] 建立 `/favorites` 頁
+  - 可查看匿名收藏清單
+  - 可從列表回到毛孩詳情
+- [x] 建立 `/admin` 頁
+  - 可查看最小版統計
+  - 可看最近申請與最近收藏
+- [x] 建立申請詳情頁
+  - 可查看單筆申請完整內容
+  - 可從列表切入
+  - 可直接核准、拒絕、改回待處理
+- [x] 申請審核操作
+  - 可核准申請
+  - 可拒絕申請
+  - 可改回待處理
+
+## 近期目標
+
+這一段是接下來最值得做、也最能直接增加產品完成度的工作。
+
+- [ ] 把收藏功能接成會員版
+  - 目前已完成 localStorage 與 D1 同步
+  - 下一步再接會員資料表
+  - 再補收藏清單頁
+- [x] 補齊申請流程的使用體驗
+  - 已補成功頁
+  - 已補基本驗證與送出後導向
+  - 申請編號會帶到結果頁
+- [x] 讓 `/pets`、`/pets/[id]` 與 `/apply` 的 UI 更一致
+  - 共用更完整的資料顯示區塊
+  - 提高在手機上的可讀性
+- [x] 補齊部署設定
+  - 已把 `BaseLayout` 做成可配置 canonical / image / noindex
+  - admin 頁已避免被搜尋引擎收錄
+  - 公開頁之後可逐頁補 canonical 與社群圖
+
+## 中期目標
+
+這一段是把網站從「能用」推進到「能營運」。
+
+- [x] 建立收藏 API
+  - `GET /api/favorites`
   - `POST /api/favorites`
-- [ ] 接上資料庫
-  - 先設計 D1 schema
-  - 再寫 migration
-  - 再串 API
-  - 最後才做管理後台
-- [ ] 檢查部署設定
-  - Cloudflare Pages build output
-  - `wrangler.toml`
-  - preview / production 環境變數
-  - SEO 與社群分享標籤
-
-## 第一階段：把靜態頁變成可用頁面
-
-- [ ] 把目前的假資料整理成獨立資料檔
-  - 寵物資料
-  - 收容所資料
-  - 成功故事
-- [ ] 讓搜尋區真的有篩選效果
-  - 類型
-  - 年齡
-  - 體型
-  - 地區
-- [ ] 讓「了解更多」能進入寵物詳情頁
-  - 顯示照片
-  - 基本資料
-  - 個性描述
-  - 領養條件
-- [ ] 讓收藏功能有持久化
-  - 先存在 localStorage
-  - 之後再接會員帳號
-- [ ] 補上基本表單
-  - 領養申請
-  - 聯絡我們
-  - 提供中途
-
-## 第二階段：建立後端與資料流
-
-- [ ] 建立寵物資料 API
-  - `GET /api/pets`
-  - `GET /api/pets/:id`
-  - `GET /api/pets/search`
-- [ ] 建立收藏 API
-  - `POST /api/pets/:id/favorite`
-  - `DELETE /api/pets/:id/favorite`
-- [ ] 建立申請流程 API
-  - 送出領養申請
-  - 查詢申請狀態
-  - 後台審核
-- [ ] 建立收容所資料 API
+  - `DELETE /api/favorites`
+- [x] 建立管理後台 API
+  - `GET /api/admin/summary`
+  - `GET /api/admin/adoptions`
+  - `GET /api/admin/adoptions/:id`
+  - `GET /api/admin/pets`
+  - `GET /api/admin/favorites`
+  - `GET /api/admin/pets/:id`
+  - `PATCH /api/admin/pets/:id`
+  - `PATCH /api/admin/adoptions/:id`
+- [x] 建立申請查詢 API
+  - 可查單筆申請詳情
+  - 可追蹤審核流程
+- [x] 建立後台最小版本
+  - 下架已領養毛孩
+  - 後續再補更多編輯與審核能力
+- [x] 建立毛孩管理入口
+  - 可查看毛孩清單
+  - 可查看單筆毛孩詳情
+  - 可編輯毛孩資料
+  - 可切換毛孩狀態
+  - 可從後台切到前台毛孩頁
+  - 可直接前往申請表單
+- [ ] 建立收容所資料管理
   - 列出合作夥伴
-  - 顯示各收容所待領養數量
+  - 顯示可領養數量
+  - 維護聯絡資訊
 
-## 第三階段：做成完整產品
+## 長期目標
 
-- [ ] 新增會員系統
+這一段是平台化之後才做的事。
+
+- [ ] 會員系統
   - 註冊
   - 登入
   - 個人收藏清單
   - 申請紀錄
-- [ ] 新增寵物上架流程
-  - 收容所或管理員可新增寵物
-  - 上傳照片
-  - 編輯狀態
-  - 下架已領養寵物
-- [ ] 新增後台管理
-  - 審核領養申請
-  - 管理毛孩資料
-  - 管理合作機構
-  - 管理內容文案
-
-## 第四階段：提升體驗與可信度
-
-- [ ] 補齊 SEO
-  - `title`
-  - `description`
-  - Open Graph
-  - Twitter Card
-  - sitemap
-  - robots.txt
-- [ ] 補齊無障礙
-  - 按鈕與連結的語意
-  - keyboard 操作
-  - focus 樣式
-  - 替代文字
-- [ ] 補齊效能
-  - 壓縮圖片
-  - 減少不必要動畫
-  - 延遲載入非首屏內容
-- [ ] 補齊真實資訊
-  - 領養流程說明
+- [ ] 寵物上架流程
+  - 圖片上傳
+  - 狀態管理
+  - 編輯與下架
+- [ ] 更完整的內容管理
+  - 成功故事
   - 常見問題
   - 領養須知
-  - 聯絡方式
-
-## 第五階段：部署與維護
-
-- [ ] 確認 Cloudflare Pages 設定
-  - `wrangler.toml`
-  - build 輸出資料夾
-  - preview / production 環境
-- [ ] 建立測試清單
-  - 桌機版
-  - 手機版
-  - Safari / Chrome / Firefox
-- [ ] 加上基本監控
+  - 頁面文案管理
+- [ ] 監控與分析
   - 錯誤追蹤
   - 使用分析
   - 表單送出成功率
 
-## 建議的實作順序
+## 只記錄
 
-1. 先把搜尋和詳情頁做出來，讓網站「能用」。
-2. 再把收藏與申請流程接起來，讓網站「能完成動作」。
-3. 接著做登入、後台、上架流程，讓平台「能營運」。
-4. 最後補 SEO、無障礙、效能和監控，讓產品「能長期維持」。
+這一段是目前先放著，不代表接下來一定立刻做。
 
-## 目前這個專案最適合的下一步
+- 會員系統
+- 寵物上架流程
+- 更完整的內容管理
+- 監控與分析
+- 收容所資料管理
+- 後台最小版本
+- 寵物、故事、收容所全面移到 D1
+- 申請流程改成更完整狀態機
+- 後台逐步擴充成正式管理系統
 
-- [ ] 先建立 Astro v6 專案骨架
-- [ ] 先搬首頁到 `src/pages/index.astro`
-- [ ] 先做 `PetCard` 和 `SectionHeader` 這兩個共用元件
-- [ ] 先把 `pets` 資料抽出來
-- [ ] 再做 `/pets/[id]` 詳情頁與搜尋篩選
+## 技術債與待決策
+
+- [ ] 寵物、故事、收容所要不要全面移到 D1
+- [ ] 申請流程要先維持寫入 + 審核，還是改成更完整狀態機
+- [ ] 後台要不要逐步擴充成正式管理系統
+
+## 建議順序
+
+1. 先把收藏功能補起來
+2. 再把申請流程做完整
+3. 接著做後台最小版本
+4. 最後補會員、SEO、監控與營運工具

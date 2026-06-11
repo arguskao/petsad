@@ -1,0 +1,295 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+---
+
+<BaseLayout title="我的收藏 - PawsHome" description="查看你收藏的毛孩清單，重新回到牠們的故事。">
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Favorites"
+          title="我的收藏"
+          description="把你喜歡的毛孩先收進來，慢慢挑選最適合的那一位。"
+        />
+
+        <div class="search-card fade-in is-visible">
+          <h3>收藏清單</h3>
+          <p class="pet-description">這裡會顯示你收藏過的毛孩。收藏資料目前先透過匿名 clientId 同步到 D1。</p>
+          <div class="search-filters" style="margin-top: 1rem;">
+            <div class="filter-group">
+              <label for="favorite-search">搜尋收藏</label>
+              <input
+                id="favorite-search"
+                name="favorite-search"
+                class="filter-select"
+                type="search"
+                placeholder="搜尋名字、標籤或地區"
+              />
+            </div>
+            <div class="filter-group">
+              <label for="favorite-sort">排序方式</label>
+              <select id="favorite-sort" name="favorite-sort" class="filter-select">
+                <option value="newest">最新收藏</option>
+                <option value="oldest">最早收藏</option>
+                <option value="name">名稱 A-Z</option>
+              </select>
+            </div>
+          </div>
+          <p class="pet-results-meta" id="favorites-meta" aria-live="polite"></p>
+          <div class="hero-actions" style="margin-top: 1rem;">
+            <button class="btn-outline" type="button" id="clear-favorites">清空收藏</button>
+            <a class="btn-primary" href="/pets">繼續找毛孩</a>
+          </div>
+          <p class="pet-empty-state" id="favorites-empty" hidden>
+            目前還沒有收藏任何毛孩，去 <a href="/pets">毛孩列表</a> 看看吧。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="featured-pets">
+      <div class="container">
+        <div class="pets-grid" id="favorites-grid" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const grid = document.querySelector('#favorites-grid');
+    const meta = document.querySelector('#favorites-meta');
+    const emptyState = document.querySelector('#favorites-empty');
+    const clearButton = document.querySelector('#clear-favorites');
+    const searchInput = document.querySelector('#favorite-search');
+    const sortSelect = document.querySelector('#favorite-sort');
+    let favoriteItems = [];
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const renderPetCard = (item) => {
+      const { pet, favoriteCreatedAt } = item;
+
+      return `
+      <article
+        class="pet-card fade-in is-visible"
+        data-pet="${escapeHtml(pet.species)}"
+        data-age-group="${escapeHtml(pet.ageGroup)}"
+        data-size-group="${escapeHtml(pet.sizeGroup)}"
+        data-location-key="${escapeHtml(pet.locationKey)}"
+        data-favorite-pet-id="${escapeHtml(pet.id)}"
+        data-favorite-created-at="${escapeHtml(favoriteCreatedAt || '')}"
+      >
+        <div class="pet-image">
+          ${pet.badge ? `<div class="pet-badge ${escapeHtml(pet.badge.tone)}">${escapeHtml(pet.badge.label)}</div>` : ''}
+          <div class="pet-placeholder">
+            <span class="pet-emoji">${escapeHtml(pet.emoji)}</span>
+          </div>
+          <button
+            class="favorite-btn is-favorited"
+            type="button"
+            aria-label="取消收藏 ${escapeHtml(pet.name)}"
+            aria-pressed="true"
+            data-favorite-button
+            data-favorite-id="${escapeHtml(pet.id)}"
+            data-favorite-name="${escapeHtml(pet.name)}"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 21L10.55 19.7C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 19.7L12 21Z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="pet-info">
+          <div class="pet-header">
+            <h3>${escapeHtml(pet.name)}</h3>
+            <span class="pet-gender ${escapeHtml(pet.gender)}">${pet.gender === 'male' ? '♂' : '♀'}</span>
+          </div>
+
+          <div class="pet-details">
+            <span class="detail-item">🎂 ${escapeHtml(pet.age)}</span>
+            <span class="detail-item">📏 ${escapeHtml(pet.size)}</span>
+            <span class="detail-item">📍 ${escapeHtml(pet.location)}</span>
+          </div>
+
+          <p class="pet-description">${escapeHtml(pet.description)}</p>
+
+          <div class="pet-tags">
+            ${pet.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+
+          <a class="btn-primary full-width" href="/pets/${escapeHtml(pet.id)}">了解更多</a>
+        </div>
+      </article>
+    `;
+    };
+
+    const syncButtons = () => {
+      window.PawsHomeFavorites?.syncButtons();
+    };
+
+    const getClientId = () => {
+      return window.PawsHomeFavorites?.getClientId?.() || '';
+    };
+
+    const normalize = (value) => String(value || '').trim().toLowerCase();
+
+    const sortFavorites = (items) => {
+      const mode = sortSelect?.value || 'newest';
+
+      return [...items].sort((left, right) => {
+        if (mode === 'name') {
+          return left.pet.name.localeCompare(right.pet.name, 'zh-Hant-TW');
+        }
+
+        const leftTime = new Date(left.favoriteCreatedAt || 0).getTime();
+        const rightTime = new Date(right.favoriteCreatedAt || 0).getTime();
+
+        if (mode === 'oldest') {
+          return leftTime - rightTime;
+        }
+
+        return rightTime - leftTime;
+      });
+    };
+
+    const filterFavorites = (items) => {
+      const query = normalize(searchInput?.value);
+      if (!query) return items;
+
+      return items.filter(({ pet }) => {
+        const haystack = [
+          pet.name,
+          pet.location,
+          pet.description,
+          pet.story,
+          ...(pet.tags || []),
+        ].join(' ').toLowerCase();
+
+        return haystack.includes(query);
+      });
+    };
+
+    const renderFavorites = () => {
+      if (!grid) return;
+
+      const visibleItems = filterFavorites(sortFavorites(favoriteItems));
+      grid.innerHTML = visibleItems.map((item) => renderPetCard(item)).join('');
+      meta.textContent = favoriteItems.length === 0
+        ? '你目前還沒有收藏任何毛孩。'
+        : visibleItems.length === favoriteItems.length
+          ? `你已收藏 ${favoriteItems.length} 隻毛孩`
+          : `找到 ${visibleItems.length} / ${favoriteItems.length} 隻符合條件的收藏`;
+
+      if (emptyState) {
+        emptyState.hidden = visibleItems.length !== 0;
+        if (favoriteItems.length > 0 && visibleItems.length === 0) {
+          emptyState.innerHTML = '沒有找到符合條件的收藏，試試調整搜尋或排序。';
+        } else {
+          emptyState.innerHTML = '目前還沒有收藏任何毛孩，去 <a href="/pets">毛孩列表</a> 看看吧。';
+        }
+      }
+
+      if (visibleItems.length === 0) {
+        grid.dataset.empty = 'true';
+      } else {
+        delete grid.dataset.empty;
+      }
+
+      syncButtons();
+    };
+
+    const loadFavorites = async () => {
+      if (!grid) return;
+
+      const clientId = getClientId();
+      if (!clientId) {
+        grid.innerHTML = '';
+        if (meta) meta.textContent = '尚未建立收藏識別碼。';
+        if (emptyState) emptyState.hidden = false;
+        return;
+      }
+
+      grid.innerHTML = '';
+      grid.innerHTML = '<p class="pet-results-meta">正在載入收藏清單...</p>';
+
+      const response = await fetch(`/api/favorites?clientId=${encodeURIComponent(clientId)}`);
+      const data = await response.json();
+      favoriteItems = Array.isArray(data.results) ? data.results : [];
+
+      renderFavorites();
+    };
+
+    const clearFavorites = async () => {
+      const clientId = getClientId();
+      if (!clientId) return;
+
+      const favoriteSet = window.PawsHomeFavorites?.getFavoriteSet?.() || new Set();
+      const snapshot = new Set(favoriteSet);
+
+      window.localStorage.setItem('paws-favorites', JSON.stringify([]));
+      syncButtons();
+
+      try {
+        const response = await fetch('/api/favorites', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ clientId }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.message || '清空收藏失敗');
+        }
+
+        favoriteItems = [];
+        renderFavorites();
+        window.PawsHomeUI?.showNotification?.(data.message || '收藏已全部清空。');
+      } catch (error) {
+        window.localStorage.setItem('paws-favorites', JSON.stringify([...snapshot]));
+        syncButtons();
+        throw error;
+      }
+    };
+
+    clearButton?.addEventListener('click', () => {
+      clearFavorites().catch(() => {
+        if (meta) {
+          meta.textContent = '清空收藏失敗，請稍後再試。';
+        }
+      });
+    });
+
+    searchInput?.addEventListener('input', () => {
+      renderFavorites();
+    });
+
+    sortSelect?.addEventListener('change', () => {
+      renderFavorites();
+    });
+
+    loadFavorites().catch(() => {
+      if (meta) {
+        meta.textContent = '收藏清單載入失敗，請稍後再試。';
+      }
+      if (emptyState) {
+        emptyState.hidden = false;
+      }
+    });
+  </script>
+</BaseLayout>

@@ -27,22 +27,24 @@ export const filterPets = (items: Pet[], filters: PetFilters) => {
   const area = normalizeFilterValue('area', filters.area);
 
   return items.filter((pet) => {
+    const isVisible = !pet.status || pet.status === 'available';
     const matchType = type === 'all' || pet.species === type;
     const matchAge = age === 'any' || pet.ageGroup === age;
     const matchSize = size === 'any' || pet.sizeGroup === size;
     const matchArea = area === 'all' || pet.locationKey === area;
 
-    return matchType && matchAge && matchSize && matchArea;
+    return isVisible && matchType && matchAge && matchSize && matchArea;
   });
 };
 
 export const findPetById = (id: string) => pets.find((pet) => pet.id === id);
 
 export const createPetApiPayload = (items: Pet[], filters: PetFilters = {}) => {
-  const results = filterPets(items, filters);
+  const visibleItems = items.filter((pet) => !pet.status || pet.status === 'available');
+  const results = filterPets(visibleItems, filters);
 
   return {
-    total: items.length,
+    total: visibleItems.length,
     count: results.length,
     filters: {
       type: normalizeFilterValue('type', filters.type),

@@ -5,11 +5,19 @@ import { site } from '../data/site';
 interface Props {
   title?: string;
   description?: string;
+  canonical?: string;
+  image?: string;
+  noIndex?: boolean;
+  type?: 'website' | 'article';
 }
 
 const {
   title = site.title,
   description = site.description,
+  canonical,
+  image,
+  noIndex = false,
+  type = 'website',
 } = Astro.props as Props;
 ---
 
@@ -20,10 +28,17 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {noIndex && <meta name="robots" content="noindex,nofollow" />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={site.name} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    {image && <meta property="og:image" content={image} />}
+    <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
+    {image && <meta name="twitter:image" content={image} />}
+    <meta name="theme-color" content="#ff6b6b" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -37,6 +52,8 @@ const {
       const navbar = document.querySelector('.navbar');
       const heroStats = document.querySelector('.hero-stats');
       const fadeTargets = document.querySelectorAll('.fade-in');
+      const favoritesStorageKey = 'paws-favorites';
+      const favoriteClientIdKey = 'paws-favorite-client-id';
 
       const showNotification = (message) => {
         const existing = document.querySelector('.notification');
@@ -57,6 +74,87 @@ const {
         }, 2600);
       };
 
+      const readFavoriteSet = () => {
+        try {
+          const stored = window.localStorage.getItem(favoritesStorageKey);
+          const parsed = stored ? JSON.parse(stored) : [];
+          return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+        } catch {
+          return new Set();
+        }
+      };
+
+      const writeFavoriteSet = (set) => {
+        window.localStorage.setItem(favoritesStorageKey, JSON.stringify([...set]));
+      };
+
+      const getFavoriteClientId = () => {
+        const existing = window.localStorage.getItem(favoriteClientIdKey);
+        if (existing) return existing;
+
+        const nextId = crypto.randomUUID();
+        window.localStorage.setItem(favoriteClientIdKey, nextId);
+        return nextId;
+      };
+
+      const syncFavoriteButtons = () => {
+        const favoriteSet = readFavoriteSet();
+
+        document.querySelectorAll('[data-favorite-button]').forEach((button) => {
+          const petId = button.getAttribute('data-favorite-id');
+          if (!petId) return;
+
+          const isFavorited = favoriteSet.has(petId);
+          button.classList.toggle('is-favorited', isFavorited);
+          button.setAttribute('aria-pressed', String(isFavorited));
+        });
+      };
+
+      const syncFavoriteCount = () => {
+        const favoriteCount = readFavoriteSet().size;
+
+        document.querySelectorAll('[data-favorite-count]').forEach((node) => {
+          node.textContent = String(favoriteCount);
+        });
+      };
+
+      const syncFavoriteState = () => {
+        syncFavoriteButtons();
+        syncFavoriteCount();
+      };
+
+      const persistFavoriteState = async (petId, isFavorited) => {
+        const response = await fetch('/api/favorites', {
+          method: isFavorited ? 'POST' : 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            petId,
+            clientId: getFavoriteClientId(),
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.message || '收藏更新失敗');
+        }
+
+        return data;
+      };
+
+      window.PawsHomeFavorites = {
+        syncButtons: syncFavoriteState,
+        getFavoriteSet: readFavoriteSet,
+        getClientId: getFavoriteClientId,
+        getCount: () => readFavoriteSet().size,
+      };
+
+      window.PawsHomeUI = {
+        showNotification,
+      };
+
       document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
         anchor.addEventListener('click', (event) => {
           const href = anchor.getAttribute('href');
@@ -75,12 +173,45 @@ const {
         }, { passive: true });
       }
 
-      document.querySelectorAll('.favorite-btn').forEach((button) => {
-        button.addEventListener('click', (event) => {
-          event.stopPropagation();
-          button.classList.toggle('is-favorited');
-          showNotification(button.classList.contains('is-favorited') ? '❤️ 已加入最愛' : '💔 已取消收藏');
-        });
+      document.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        const button = target.closest('[data-favorite-button]');
+        if (!button) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const petId = button.getAttribute('data-favorite-id');
+        const petName = button.getAttribute('data-favorite-name') || '這隻毛孩';
+        if (!petId) return;
+
+        const favoriteSet = readFavoriteSet();
+        const shouldFavorite = !favoriteSet.has(petId);
+
+        if (shouldFavorite) {
+          favoriteSet.add(petId);
+        } else {
+          favoriteSet.delete(petId);
+        }
+
+        writeFavoriteSet(favoriteSet);
+        syncFavoriteState();
+        showNotification(shouldFavorite ? `❤️ 已收藏 ${petName}` : `💔 已取消收藏 ${petName}`);
+
+        try {
+          await persistFavoriteState(petId, shouldFavorite);
+        } catch (error) {
+          if (shouldFavorite) {
+            favoriteSet.delete(petId);
+          } else {
+            favoriteSet.add(petId);
+          }
+          writeFavoriteSet(favoriteSet);
+          syncFavoriteState();
+          showNotification(error instanceof Error ? error.message : '收藏更新失敗，請稍後再試');
+        }
       });
 
       document.querySelectorAll('[data-toast]').forEach((button) => {
@@ -130,6 +261,8 @@ const {
       } else {
         fadeTargets.forEach((target) => target.classList.add('is-visible'));
       }
+
+      syncFavoriteState();
 
       const logo = document.querySelector('.logo');
       let logoClicks = 0;

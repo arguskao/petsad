@@ -1,3 +1,9 @@
 name = "saas-landing-page"
 compatibility_date = "2024-01-01"
-pages_build_output_dir = "./public"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "paws"
+database_name = "paws"
+database_id = "13ad31d6-04f5-49ab-9576-5b9426c8ccec"
+migrations_dir = "migrations"

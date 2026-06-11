@@ -26,33 +26,51 @@ const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0,
   <main>
     <section class="hero pet-detail-hero" style="min-height: auto;">
       <div class="container">
-        <div class="pet-detail-layout fade-in is-visible">
+        <div class="pet-detail-layout fade-in is-visible" data-pet-id={pet.id}>
           <div class="search-card pet-detail-card">
-            <div class="pet-detail-avatar" aria-hidden="true">{pet.emoji}</div>
+            <div class="pet-detail-avatar" aria-hidden="true" id="pet-avatar">{pet.emoji}</div>
             <div class="pet-detail-header">
               <div class="pet-header">
-                <h1>{pet.name}</h1>
-                <span class={`pet-gender ${pet.gender}`}>{pet.gender === 'male' ? '♂' : '♀'}</span>
+                <h1 id="pet-name">{pet.name}</h1>
+                <span class={`pet-gender ${pet.gender}`} id="pet-gender">{pet.gender === 'male' ? '♂' : '♀'}</span>
               </div>
-              {pet.badge && <div class={`pet-badge ${pet.badge.tone}`}>{pet.badge.label}</div>}
+              {pet.badge && (
+                <div class={`pet-badge ${pet.badge.tone}`} id="pet-badge">
+                  {pet.badge.label}
+                </div>
+              )}
             </div>
 
-            <p class="pet-detail-lead">{pet.description}</p>
-            <p class="pet-description">{pet.story}</p>
+            <p class="pet-detail-lead" id="pet-description">{pet.description}</p>
+            <p class="pet-description" id="pet-story">{pet.story}</p>
 
-            <div class="pet-details pet-detail-facts">
+            <div class="pet-details pet-detail-facts" id="pet-facts">
               <span class="detail-item">🎂 {pet.age}</span>
               <span class="detail-item">📏 {pet.size}</span>
               <span class="detail-item">📍 {pet.location}</span>
               <span class="detail-item">🐾 {pet.species === 'dog' ? '狗狗' : '貓咪'}</span>
             </div>
 
-            <div class="pet-tags">
+            <div class="pet-tags" id="pet-tags">
               {pet.tags.map((tag) => <span class="tag">{tag}</span>)}
             </div>
 
+            <div class="pet-profile-note" id="pet-availability-note" hidden></div>
+
             <div class="hero-actions">
-              <a class="btn-primary" href="/apply">我想領養這隻毛孩</a>
+              <a class="btn-primary" href={`/apply?pet=${pet.id}`} id="apply-link">
+                我想領養這隻毛孩
+              </a>
+              <button
+                class="btn-outline"
+                type="button"
+                aria-pressed="false"
+                data-favorite-button
+                data-favorite-id={pet.id}
+                data-favorite-name={pet.name}
+              >
+                收藏這隻毛孩
+              </button>
               <a class="btn-outline" href="/pets">回到毛孩列表</a>
             </div>
           </div>
@@ -60,12 +78,12 @@ const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0,
           <aside class="search-card pet-detail-sidebar">
             <p class="section-eyebrow">Pet Profile</p>
             <h2>毛孩小檔案</h2>
-            <ul class="pet-profile-list">
-              <li><strong>性別：</strong>{pet.gender === 'male' ? '公' : '母'}</li>
-              <li><strong>種類：</strong>{pet.species === 'dog' ? '狗狗' : '貓咪'}</li>
-              <li><strong>年齡：</strong>{pet.age}</li>
-              <li><strong>體型：</strong>{pet.size}</li>
-              <li><strong>所在地：</strong>{pet.location}</li>
+            <ul class="pet-profile-list" id="pet-profile-list">
+              <li><strong>性別：</strong><span id="profile-gender">{pet.gender === 'male' ? '公' : '母'}</span></li>
+              <li><strong>種類：</strong><span id="profile-species">{pet.species === 'dog' ? '狗狗' : '貓咪'}</span></li>
+              <li><strong>年齡：</strong><span id="profile-age">{pet.age}</span></li>
+              <li><strong>體型：</strong><span id="profile-size">{pet.size}</span></li>
+              <li><strong>所在地：</strong><span id="profile-location">{pet.location}</span></li>
             </ul>
             <div class="pet-profile-note">
               <h3>領養提醒</h3>
@@ -86,11 +104,140 @@ const relatedPets = pets.filter((candidate) => candidate.id !== pet.id).slice(0,
 
         <div class="pets-grid">
           {relatedPets.map((relatedPet) => <PetCard pet={relatedPet} />)}
-          </div>
         </div>
       </div>
     </section>
   </main>
 
   <Footer />
+
+  <script is:inline define:vars={{ petId: pet.id }}>
+    const detailRoot = document.querySelector('[data-pet-id]');
+    const petName = document.querySelector('#pet-name');
+    const petAvatar = document.querySelector('#pet-avatar');
+    const petGender = document.querySelector('#pet-gender');
+    const petBadge = document.querySelector('#pet-badge');
+    const petDescription = document.querySelector('#pet-description');
+    const petStory = document.querySelector('#pet-story');
+    const petFacts = document.querySelector('#pet-facts');
+    const petTags = document.querySelector('#pet-tags');
+    const petAvailabilityNote = document.querySelector('#pet-availability-note');
+    const profileGender = document.querySelector('#profile-gender');
+    const profileSpecies = document.querySelector('#profile-species');
+    const profileAge = document.querySelector('#profile-age');
+    const profileSize = document.querySelector('#profile-size');
+    const profileLocation = document.querySelector('#profile-location');
+    const applyLink = document.querySelector('#apply-link');
+    const favoriteButton = document.querySelector('[data-favorite-button]');
+
+    const setText = (node, value) => {
+      if (!node) return;
+      node.textContent = value;
+    };
+
+    const setBadge = (pet) => {
+      if (!petBadge) return;
+      if (pet.badge) {
+        petBadge.className = `pet-badge ${pet.badge.tone}`;
+        petBadge.textContent = pet.badge.label;
+        petBadge.hidden = false;
+      } else {
+        petBadge.hidden = true;
+      }
+    };
+
+    const renderFacts = (pet) => {
+      if (!petFacts) return;
+      petFacts.innerHTML = `
+        <span class="detail-item">🎂 ${pet.age}</span>
+        <span class="detail-item">📏 ${pet.size}</span>
+        <span class="detail-item">📍 ${pet.location}</span>
+        <span class="detail-item">🐾 ${pet.species === 'dog' ? '狗狗' : '貓咪'}</span>
+      `;
+    };
+
+    const renderTags = (pet) => {
+      if (!petTags) return;
+      petTags.innerHTML = pet.tags.map((tag) => `<span class="tag">${tag}</span>`).join('');
+    };
+
+    const syncApplyLink = () => {
+      if (!applyLink) return;
+      applyLink.href = `/apply?pet=${encodeURIComponent(petId)}`;
+    };
+
+    const showUnavailable = (message) => {
+      if (detailRoot) detailRoot.dataset.unavailable = 'true';
+      if (petName) petName.textContent = '這隻毛孩目前已下架';
+      if (petAvatar) petAvatar.textContent = '🐾';
+      if (petGender) petGender.textContent = '已下架';
+      if (petBadge) petBadge.hidden = true;
+      if (petDescription) petDescription.textContent = message;
+      if (petStory) petStory.textContent = '這隻毛孩目前無法申請，請先回到列表尋找其他夥伴。';
+      if (petFacts) {
+        petFacts.innerHTML = `
+          <span class="detail-item">⚠️ 已下架 / 已領養</span>
+          <span class="detail-item">請查看其他毛孩</span>
+        `;
+      }
+      if (petTags) petTags.innerHTML = '';
+      if (profileGender) profileGender.textContent = '-';
+      if (profileSpecies) profileSpecies.textContent = '-';
+      if (profileAge) profileAge.textContent = '-';
+      if (profileSize) profileSize.textContent = '-';
+      if (profileLocation) profileLocation.textContent = '-';
+      if (petAvailabilityNote) {
+        petAvailabilityNote.hidden = false;
+        petAvailabilityNote.innerHTML = `
+          <h3>目前無法申請</h3>
+          <p>${message}</p>
+        `;
+      }
+      if (applyLink) {
+        applyLink.href = '/pets';
+        applyLink.textContent = '回到毛孩列表';
+      }
+      if (favoriteButton) {
+        favoriteButton.hidden = true;
+      }
+      document.title = '毛孩已下架 - PawsHome';
+    };
+
+    fetch(`/api/pets/${encodeURIComponent(petId)}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('not-found');
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        if (!data.pet) {
+          showUnavailable('這隻毛孩目前已下架或已被領養。');
+          return;
+        }
+        const pet = data.pet;
+        setText(petName, pet.name);
+        setText(petAvatar, pet.emoji);
+        setText(petGender, pet.gender === 'male' ? '♂' : '♀');
+        if (petGender) {
+          petGender.className = `pet-gender ${pet.gender}`;
+        }
+        setText(petDescription, pet.description);
+        setText(petStory, pet.story);
+        renderFacts(pet);
+        renderTags(pet);
+        setText(profileGender, pet.gender === 'male' ? '公' : '母');
+        setText(profileSpecies, pet.species === 'dog' ? '狗狗' : '貓咪');
+        setText(profileAge, pet.age);
+        setText(profileSize, pet.size);
+        setText(profileLocation, pet.location);
+        setBadge(pet);
+        syncApplyLink();
+        document.title = `${pet.name} - PawsHome`;
+      })
+      .catch(() => {
+        showUnavailable('這隻毛孩目前已下架或已被領養。');
+      });
+  </script>
 </BaseLayout>

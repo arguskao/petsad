@@ -1,0 +1,666 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="毛孩管理 - PawsHome"
+  description="查看目前所有待領養毛孩，作為後台管理的起點。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="毛孩管理"
+          description="先把毛孩資料列出來，之後再接上編輯、下架與圖片管理。"
+        />
+
+        <div class="search-card fade-in is-visible admin-pets-toolbar">
+          <div>
+            <h3>管理提示</h3>
+            <p class="pet-description">
+              目前先做列表與查找，讓後台能快速定位毛孩。接下來再補編輯與上架流程。
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/pets">查看前台列表</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="pets-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Total</p>
+            <strong id="pets-total">-</strong>
+            <span>毛孩總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Dogs</p>
+            <strong id="pets-dogs">-</strong>
+            <span>狗狗數量</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Cats</p>
+            <strong id="pets-cats">-</strong>
+            <span>貓咪數量</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Others</p>
+            <strong id="pets-others">-</strong>
+            <span>其他動物</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-pets-layout">
+          <article class="admin-panel search-card fade-in is-visible admin-pets-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Pet Directory</p>
+                <h3>毛孩清單</h3>
+              </div>
+              <span class="admin-panel-note" id="pets-count">-</span>
+            </div>
+
+            <div class="admin-pets-search">
+              <label class="admin-search-field" for="pet-admin-search">
+                <span>搜尋毛孩</span>
+                <input id="pet-admin-search" type="search" placeholder="輸入名字、地區、標籤或 ID" />
+              </label>
+              <button class="btn-outline" type="button" id="pet-admin-refresh">重新整理</button>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-pets-table">
+                <thead>
+                  <tr>
+                    <th>毛孩</th>
+                    <th>基本資訊</th>
+                    <th>標籤 / 狀態</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="pets-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="admin-panel search-card fade-in is-visible admin-pet-detail-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Pet Editor</p>
+                <h3>毛孩編輯</h3>
+              </div>
+              <div class="admin-detail-status-row">
+                <span class="admin-panel-note" id="pet-detail-id">未選擇</span>
+                <div id="pet-detail-status"></div>
+              </div>
+            </div>
+
+            <form class="admin-pet-form" id="pet-editor-form">
+              <div class="admin-detail-pet">
+                <div class="admin-detail-pet-emoji" id="pet-detail-emoji">🐾</div>
+                <div>
+                  <h3 id="pet-detail-name">請從左側點一隻毛孩</h3>
+                  <p class="pet-description" id="pet-detail-description">這裡會顯示完整毛孩資料。</p>
+                </div>
+              </div>
+
+              <div class="admin-form-grid">
+                <label class="admin-search-field">
+                  <span>ID</span>
+                  <input id="pet-field-id" type="text" readonly />
+                </label>
+                <label class="admin-search-field">
+                  <span>名字</span>
+                  <input id="pet-field-name" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>動物種類</span>
+                  <select id="pet-field-species" required>
+                    <option value="dog">dog</option>
+                    <option value="cat">cat</option>
+                    <option value="other">other</option>
+                  </select>
+                </label>
+                <label class="admin-search-field">
+                  <span>性別</span>
+                  <select id="pet-field-gender" required>
+                    <option value="male">male</option>
+                    <option value="female">female</option>
+                  </select>
+                </label>
+                <label class="admin-search-field">
+                  <span>年齡文字</span>
+                  <input id="pet-field-age" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>年齡分類</span>
+                  <select id="pet-field-age-group" required>
+                    <option value="young">young</option>
+                    <option value="adult">adult</option>
+                    <option value="senior">senior</option>
+                  </select>
+                </label>
+                <label class="admin-search-field">
+                  <span>體型文字</span>
+                  <input id="pet-field-size" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>體型分類</span>
+                  <select id="pet-field-size-group" required>
+                    <option value="small">small</option>
+                    <option value="medium">medium</option>
+                    <option value="large">large</option>
+                  </select>
+                </label>
+                <label class="admin-search-field">
+                  <span>所在地</span>
+                  <input id="pet-field-location" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>地區代碼</span>
+                  <select id="pet-field-location-key" required>
+                    <option value="taipei">taipei</option>
+                    <option value="newtaipei">newtaipei</option>
+                    <option value="taoyuan">taoyuan</option>
+                    <option value="taichung">taichung</option>
+                    <option value="tainan">tainan</option>
+                    <option value="kaohsiung">kaohsiung</option>
+                  </select>
+                </label>
+                <label class="admin-search-field">
+                  <span>Emoji</span>
+                  <input id="pet-field-emoji" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>狀態</span>
+                  <select id="pet-field-status" required>
+                    <option value="available">available</option>
+                    <option value="hidden">hidden</option>
+                    <option value="adopted">adopted</option>
+                  </select>
+                </label>
+                <label class="admin-search-field">
+                  <span>Badge 標題</span>
+                  <input id="pet-field-badge-label" type="text" />
+                </label>
+                <label class="admin-search-field">
+                  <span>Badge 顏色</span>
+                  <select id="pet-field-badge-tone">
+                    <option value="">default</option>
+                    <option value="urgent">urgent</option>
+                    <option value="new">new</option>
+                    <option value="default">default</option>
+                  </select>
+                </label>
+                <label class="admin-search-field">
+                  <span>排序</span>
+                  <input id="pet-field-sort-order" type="number" min="0" step="1" required />
+                </label>
+              </div>
+
+              <label class="admin-search-field admin-full-width">
+                <span>描述</span>
+                <textarea id="pet-field-description" rows="4" required></textarea>
+              </label>
+
+              <label class="admin-search-field admin-full-width">
+                <span>故事</span>
+                <textarea id="pet-field-story" rows="5" required></textarea>
+              </label>
+
+              <label class="admin-search-field admin-full-width">
+                <span>標籤</span>
+                <textarea id="pet-field-tags" rows="3" placeholder="親人, 活潑, 已結紮"></textarea>
+              </label>
+
+              <div class="admin-detail-note-block">
+                <span class="admin-detail-label">管理入口</span>
+                <div class="hero-actions admin-detail-actions">
+                  <a class="btn-outline" id="pet-detail-public" href="/pets">前台頁</a>
+                  <a class="btn-primary" id="pet-detail-apply" href="/apply">申請表單</a>
+                </div>
+              </div>
+
+              <div class="hero-actions admin-detail-actions">
+                <button class="btn-primary" type="submit" id="pet-save-button" disabled>儲存變更</button>
+                <button class="btn-outline" type="button" id="pet-reset-button" disabled>重設</button>
+                <button class="btn-outline" type="button" id="pet-restore-button" data-status-preset="available" disabled>恢復上架</button>
+                <button class="btn-outline" type="button" id="pet-hide-button" data-status-preset="hidden" disabled>下架</button>
+                <button class="btn-outline" type="button" id="pet-adopted-button" data-status-preset="adopted" disabled>標記已領養</button>
+              </div>
+
+              <p class="pet-description" id="pet-detail-hint">
+                從左側列表點「查看詳情」後，這裡會載入資料。
+              </p>
+            </form>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const petsTotal = document.querySelector('#pets-total');
+    const petsDogs = document.querySelector('#pets-dogs');
+    const petsCats = document.querySelector('#pets-cats');
+    const petsOthers = document.querySelector('#pets-others');
+    const petsCount = document.querySelector('#pets-count');
+    const petsTableBody = document.querySelector('#pets-table-body');
+    const searchInput = document.querySelector('#pet-admin-search');
+    const refreshButton = document.querySelector('#pet-admin-refresh');
+    const petDetailId = document.querySelector('#pet-detail-id');
+    const petDetailStatus = document.querySelector('#pet-detail-status');
+    const petDetailEmoji = document.querySelector('#pet-detail-emoji');
+    const petDetailName = document.querySelector('#pet-detail-name');
+    const petDetailDescription = document.querySelector('#pet-detail-description');
+    const petDetailSpeciesGender = document.querySelector('#pet-detail-species-gender');
+    const petDetailAgeSize = document.querySelector('#pet-detail-age-size');
+    const petDetailLocation = document.querySelector('#pet-detail-location');
+    const petDetailTags = document.querySelector('#pet-detail-tags');
+    const petDetailStory = document.querySelector('#pet-detail-story');
+    const petDetailPublic = document.querySelector('#pet-detail-public');
+    const petDetailApply = document.querySelector('#pet-detail-apply');
+    const petDetailHint = document.querySelector('#pet-detail-hint');
+    const petEditorForm = document.querySelector('#pet-editor-form');
+    const petSaveButton = document.querySelector('#pet-save-button');
+    const petResetButton = document.querySelector('#pet-reset-button');
+    const petFieldId = document.querySelector('#pet-field-id');
+    const petFieldName = document.querySelector('#pet-field-name');
+    const petFieldSpecies = document.querySelector('#pet-field-species');
+    const petFieldGender = document.querySelector('#pet-field-gender');
+    const petFieldAge = document.querySelector('#pet-field-age');
+    const petFieldAgeGroup = document.querySelector('#pet-field-age-group');
+    const petFieldSize = document.querySelector('#pet-field-size');
+    const petFieldSizeGroup = document.querySelector('#pet-field-size-group');
+    const petFieldLocation = document.querySelector('#pet-field-location');
+    const petFieldLocationKey = document.querySelector('#pet-field-location-key');
+    const petFieldEmoji = document.querySelector('#pet-field-emoji');
+    const petFieldStatus = document.querySelector('#pet-field-status');
+    const petFieldBadgeLabel = document.querySelector('#pet-field-badge-label');
+    const petFieldBadgeTone = document.querySelector('#pet-field-badge-tone');
+    const petFieldSortOrder = document.querySelector('#pet-field-sort-order');
+    const petFieldDescription = document.querySelector('#pet-field-description');
+    const petFieldStory = document.querySelector('#pet-field-story');
+    const petFieldTags = document.querySelector('#pet-field-tags');
+    const statusButtons = Array.from(document.querySelectorAll('[data-status-preset]'));
+    let currentPetId = '';
+    let currentPetSnapshot = null;
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const allPets = [];
+    let currentPets = [];
+
+    const renderBadge = (pet) => {
+      if (!pet.badge) return '<span class="admin-badge">一般</span>';
+      return `<span class="admin-badge ${escapeHtml(pet.badge.tone)}">${escapeHtml(pet.badge.label)}</span>`;
+    };
+
+    const renderStatusBadge = (status) => {
+      if (status === 'hidden') return '<span class="admin-badge hidden">已下架</span>';
+      if (status === 'adopted') return '<span class="admin-badge adopted">已領養</span>';
+      return '<span class="admin-badge available">上架中</span>';
+    };
+
+    const renderRow = (pet) => `
+      <tr>
+        <td>
+          <a href="/pets/${escapeHtml(pet.id)}">${escapeHtml(pet.emoji)} ${escapeHtml(pet.name)}</a>
+          <div class="admin-table-subtitle">${escapeHtml(pet.id)}</div>
+        </td>
+        <td>
+          <strong>${escapeHtml(pet.location)}</strong>
+          <div class="admin-table-subtitle">${escapeHtml(pet.age)} · ${escapeHtml(pet.size)}</div>
+          <div class="admin-table-subtitle">${pet.gender === 'male' ? '公' : '母'} · ${escapeHtml(pet.species)}</div>
+        </td>
+        <td>
+          ${renderStatusBadge(pet.status)}
+          ${renderBadge(pet)}
+          <div class="admin-pet-tags">
+            ${pet.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+        </td>
+        <td>
+          <div class="admin-row-actions">
+            <a class="admin-action-btn secondary" href="/pets/${escapeHtml(pet.id)}">前台頁</a>
+            <a class="admin-action-btn secondary" href="/admin/pets?id=${encodeURIComponent(pet.id)}">查看詳情</a>
+            <a class="admin-action-btn approve" href="/apply?pet=${encodeURIComponent(pet.id)}">申請表單</a>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const setDetailState = (message) => {
+      if (petDetailHint) petDetailHint.textContent = message;
+    };
+
+    const fillPetForm = (pet) => {
+      if (!pet) return;
+
+      if (petFieldId) petFieldId.value = pet.id || '';
+      if (petFieldName) petFieldName.value = pet.name || '';
+      if (petFieldSpecies) petFieldSpecies.value = pet.species || 'dog';
+      if (petFieldGender) petFieldGender.value = pet.gender || 'male';
+      if (petFieldAge) petFieldAge.value = pet.age || '';
+      if (petFieldAgeGroup) petFieldAgeGroup.value = pet.ageGroup || 'adult';
+      if (petFieldSize) petFieldSize.value = pet.size || '';
+      if (petFieldSizeGroup) petFieldSizeGroup.value = pet.sizeGroup || 'medium';
+      if (petFieldLocation) petFieldLocation.value = pet.location || '';
+      if (petFieldLocationKey) petFieldLocationKey.value = pet.locationKey || 'taipei';
+      if (petFieldEmoji) petFieldEmoji.value = pet.emoji || '';
+      if (petFieldStatus) petFieldStatus.value = pet.status || 'available';
+      if (petFieldBadgeLabel) petFieldBadgeLabel.value = pet.badge?.label || '';
+      if (petFieldBadgeTone) petFieldBadgeTone.value = pet.badge?.tone || '';
+      if (petFieldSortOrder) petFieldSortOrder.value = String(pet.sortOrder ?? 0);
+      if (petFieldDescription) petFieldDescription.value = pet.description || '';
+      if (petFieldStory) petFieldStory.value = pet.story || '';
+      if (petFieldTags) petFieldTags.value = Array.isArray(pet.tags) ? pet.tags.join(', ') : '';
+      if (petSaveButton) petSaveButton.disabled = false;
+      if (petResetButton) petResetButton.disabled = false;
+    };
+
+    const normalizeTags = (value) =>
+      value
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    const snapshotForm = () => ({
+      id: petFieldId?.value || '',
+      name: petFieldName?.value || '',
+      species: petFieldSpecies?.value || 'dog',
+      gender: petFieldGender?.value || 'male',
+      age: petFieldAge?.value || '',
+      ageGroup: petFieldAgeGroup?.value || 'adult',
+      size: petFieldSize?.value || '',
+      sizeGroup: petFieldSizeGroup?.value || 'medium',
+      location: petFieldLocation?.value || '',
+      locationKey: petFieldLocationKey?.value || 'taipei',
+      emoji: petFieldEmoji?.value || '',
+      status: petFieldStatus?.value || 'available',
+      badgeLabel: petFieldBadgeLabel?.value || '',
+      badgeTone: petFieldBadgeTone?.value || '',
+      sortOrder: Number(petFieldSortOrder?.value || 0),
+      description: petFieldDescription?.value || '',
+      story: petFieldStory?.value || '',
+      tags: normalizeTags(petFieldTags?.value || ''),
+    });
+
+    const renderPetDetail = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id')?.trim() || '';
+
+      currentPetId = id;
+
+      if (!id) {
+        currentPetSnapshot = null;
+        if (petDetailId) petDetailId.textContent = '未選擇';
+        if (petDetailStatus) petDetailStatus.innerHTML = '<span class="admin-badge">未選擇</span>';
+        if (petDetailName) petDetailName.textContent = '請從左側點一隻毛孩';
+        if (petDetailDescription) petDetailDescription.textContent = '這裡會顯示完整毛孩資料。';
+        if (petDetailEmoji) petDetailEmoji.textContent = '🐾';
+        if (petDetailSpeciesGender) petDetailSpeciesGender.textContent = '-';
+        if (petDetailAgeSize) petDetailAgeSize.textContent = '-';
+        if (petDetailLocation) petDetailLocation.textContent = '-';
+        if (petDetailTags) petDetailTags.textContent = '-';
+        if (petDetailStory) petDetailStory.textContent = '從左側列表點「查看詳情」後，這裡會載入資料。';
+        if (petDetailPublic) petDetailPublic.setAttribute('href', '/pets');
+        if (petDetailApply) petDetailApply.setAttribute('href', '/apply');
+        if (petSaveButton) petSaveButton.disabled = true;
+        if (petResetButton) petResetButton.disabled = true;
+        statusButtons.forEach((button) => {
+          button.disabled = true;
+        });
+        setDetailState('從左側列表點「查看詳情」後，這裡會載入資料。');
+        return;
+      }
+
+      if (petDetailId) petDetailId.textContent = `ID：${id}`;
+      setDetailState('載入中...');
+
+      const response = await fetch(`/api/admin/pets/${encodeURIComponent(id)}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || data.message || '讀取毛孩詳情失敗');
+      }
+
+      const pet = data.pet || {};
+      currentPetSnapshot = {
+        id: pet.id || '',
+        name: pet.name || '',
+        species: pet.species || 'dog',
+        gender: pet.gender || 'male',
+        age: pet.age || '',
+        ageGroup: pet.ageGroup || 'adult',
+        size: pet.size || '',
+        sizeGroup: pet.sizeGroup || 'medium',
+        location: pet.location || '',
+        locationKey: pet.locationKey || 'taipei',
+        emoji: pet.emoji || '🐾',
+        status: pet.status || 'available',
+        badge: pet.badge ? { ...pet.badge } : undefined,
+        description: pet.description || '',
+        story: pet.story || '',
+        tags: Array.isArray(pet.tags) ? [...pet.tags] : [],
+        sortOrder: pet.sortOrder ?? 0,
+      };
+
+      if (petDetailName) petDetailName.textContent = `${pet.emoji || '🐾'} ${pet.name || '-'}`;
+      if (petDetailDescription) petDetailDescription.textContent = pet.description || '沒有提供毛孩描述。';
+      if (petDetailEmoji) petDetailEmoji.textContent = pet.emoji || '🐾';
+      if (petDetailStatus) petDetailStatus.innerHTML = renderStatusBadge(pet.status || 'available');
+      if (petDetailSpeciesGender) petDetailSpeciesGender.textContent = `${pet.species || '-'} / ${pet.gender || '-'}`;
+      if (petDetailAgeSize) petDetailAgeSize.textContent = `${pet.age || '-'} / ${pet.size || '-'}`;
+      if (petDetailLocation) petDetailLocation.textContent = pet.location || '-';
+      if (petDetailTags) petDetailTags.textContent = Array.isArray(pet.tags) && pet.tags.length ? pet.tags.join('、') : '-';
+      if (petDetailStory) petDetailStory.textContent = pet.story || '沒有提供毛孩故事。';
+      if (petDetailPublic) petDetailPublic.setAttribute('href', `/pets/${encodeURIComponent(pet.id || '')}`);
+      if (petDetailApply) petDetailApply.setAttribute('href', `/apply?pet=${encodeURIComponent(pet.id || '')}`);
+      fillPetForm(currentPetSnapshot);
+      statusButtons.forEach((button) => {
+        button.disabled = false;
+      });
+      setDetailState('已載入毛孩資料。');
+    };
+
+    const updateStats = (pets) => {
+      const total = pets.length;
+      const dogs = pets.filter((pet) => pet.species === 'dog').length;
+      const cats = pets.filter((pet) => pet.species === 'cat').length;
+      const others = total - dogs - cats;
+
+      if (petsTotal) petsTotal.textContent = String(total);
+      if (petsDogs) petsDogs.textContent = String(dogs);
+      if (petsCats) petsCats.textContent = String(cats);
+      if (petsOthers) petsOthers.textContent = String(others);
+      if (petsCount) petsCount.textContent = `${pets.length} 隻`;
+    };
+
+    const renderPets = () => {
+      if (!petsTableBody) return;
+
+      if (!currentPets.length) {
+        petsTableBody.innerHTML = '<tr><td colspan="4">沒有找到符合條件的毛孩</td></tr>';
+        return;
+      }
+
+      petsTableBody.innerHTML = currentPets.map(renderRow).join('');
+    };
+
+    const filterPets = () => {
+      const keyword = (searchInput?.value || '').trim().toLowerCase();
+
+      if (!keyword) {
+        currentPets = [...allPets];
+        renderPets();
+        updateStats(currentPets);
+        return;
+      }
+
+      currentPets = allPets.filter((pet) => {
+        const haystack = [
+          pet.id,
+          pet.name,
+          pet.species,
+          pet.gender,
+          pet.status,
+          pet.age,
+          pet.size,
+          pet.location,
+          pet.description,
+          pet.story,
+          ...(pet.tags || []),
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return haystack.includes(keyword);
+      });
+
+      renderPets();
+      updateStats(currentPets);
+    };
+
+    const loadPets = async () => {
+      if (petsTableBody) {
+        petsTableBody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
+      }
+
+      const response = await fetch('/api/admin/pets');
+      const data = await response.json();
+      const pets = Array.isArray(data.results) ? data.results : [];
+
+      allPets.splice(0, allPets.length, ...pets);
+      currentPets = [...allPets];
+
+      renderPets();
+      updateStats(currentPets);
+      await renderPetDetail();
+    };
+
+    searchInput?.addEventListener('input', filterPets);
+    refreshButton?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      loadPets().catch(() => {
+        if (petsTableBody) {
+          petsTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+        }
+      });
+    });
+
+    window.addEventListener('popstate', () => {
+      renderPetDetail().catch(() => {
+        if (petDetailName) petDetailName.textContent = '資料載入失敗';
+        if (petDetailDescription) petDetailDescription.textContent = '請稍後再試。';
+      });
+    });
+
+    petsTableBody?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const detailLink = target.closest('a[href^="/admin/pets?id="]');
+      if (!detailLink) return;
+
+      event.preventDefault();
+      const href = detailLink.getAttribute('href');
+      if (!href) return;
+
+      const url = new URL(href, window.location.origin);
+      window.history.pushState({}, '', `${window.location.pathname}${url.search}`);
+      renderPetDetail().catch(() => {
+        if (petDetailName) petDetailName.textContent = '資料載入失敗';
+        if (petDetailDescription) petDetailDescription.textContent = '請稍後再試。';
+      });
+    });
+
+    petResetButton?.addEventListener('click', () => {
+      if (!currentPetSnapshot) return;
+      fillPetForm(currentPetSnapshot);
+      setDetailState('已重設為目前資料。');
+    });
+
+    petEditorForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      if (!currentPetId) return;
+
+      const payload = snapshotForm();
+      if (petSaveButton) petSaveButton.disabled = true;
+      if (petResetButton) petResetButton.disabled = true;
+      setDetailState('儲存中...');
+
+      fetch(`/api/admin/pets/${encodeURIComponent(currentPetId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+          if (!response.ok) {
+            throw new Error(data.message || '更新毛孩資料失敗');
+          }
+
+          window.PawsHomeUI?.showNotification?.(data.message || '毛孩資料已更新。');
+          return renderPetDetail();
+        })
+        .catch(() => {
+          window.PawsHomeUI?.showNotification?.('更新失敗，請稍後再試。');
+        })
+        .finally(() => {
+          if (petSaveButton) petSaveButton.disabled = false;
+          if (petResetButton) petResetButton.disabled = false;
+          statusButtons.forEach((button) => {
+            button.disabled = false;
+          });
+        });
+    });
+
+    const applyStatusPreset = (status) => {
+      if (!petFieldStatus) return;
+      petFieldStatus.value = status;
+      petEditorForm?.requestSubmit?.();
+    };
+
+    statusButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const preset = button.getAttribute('data-status-preset');
+        if (!preset) return;
+        applyStatusPreset(preset);
+      });
+    });
+
+    loadPets().catch(() => {
+      if (petsTableBody) {
+        petsTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+      }
+    });
+  </script>
+</BaseLayout>

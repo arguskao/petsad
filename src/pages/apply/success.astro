@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+
+const requestId = Astro.url.searchParams.get('request')?.trim() || '';
+const petId = Astro.url.searchParams.get('pet')?.trim() || '';
+const petName = Astro.url.searchParams.get('name')?.trim() || '';
+---
+
+<BaseLayout
+  title="申請已送出 - PawsHome"
+  description="你的領養 / 中途申請已成功送出，接下來請留意後續聯絡。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Success"
+          title="申請已送出"
+          description="我們已收到你的資料，接下來請留意後續聯絡。"
+        />
+
+        <div class="search-card fade-in is-visible">
+          <h3>下一步</h3>
+          <p class="pet-description">
+            申請已成功進入 D1，等待後台審核與聯絡。
+            {petName ? `你剛剛申請的是「${petName}」。` : ''}
+          </p>
+
+          <div class="pet-details">
+            {requestId ? <span class="detail-item">🧾 申請編號：{requestId}</span> : null}
+            {petId ? <span class="detail-item">🐾 毛孩編號：{petId}</span> : null}
+            <span class="detail-item">📬 請留意 Email 與電話</span>
+          </div>
+
+          <div class="hero-actions">
+            {petId ? (
+              <a class="btn-primary" href={`/pets/${petId}`}>
+                回到毛孩頁
+              </a>
+            ) : (
+              <a class="btn-primary" href="/pets">
+                回到毛孩列表
+              </a>
+            )}
+            <a class="btn-outline" href="/apply">
+              再送出一筆申請
+            </a>
+            <a class="btn-outline" href="/favorites">
+              先看收藏清單
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="featured-pets">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Reminder"
+          title="送出後可以先做的事"
+          description="如果你還在猶豫，也可以先收藏其他毛孩，等之後再比較。"
+        />
+
+        <div class="pets-grid">
+          <article class="search-card fade-in is-visible">
+            <p class="section-eyebrow">Check</p>
+            <h3>確認聯絡方式</h3>
+            <p class="pet-description">請確認 Email 與手機可正常收訊，方便後台與你聯絡。</p>
+          </article>
+          <article class="search-card fade-in is-visible">
+            <p class="section-eyebrow">Follow</p>
+            <h3>留意審核狀態</h3>
+            <p class="pet-description">目前申請狀態會先停在待處理，之後由後台更新審核結果。</p>
+          </article>
+          <article class="search-card fade-in is-visible">
+            <p class="section-eyebrow">Explore</p>
+            <h3>繼續看其他毛孩</h3>
+            <p class="pet-description">如果還想多比較幾隻，可以先回到列表瀏覽更多選擇。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

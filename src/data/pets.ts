@@ -2,6 +2,7 @@ export type PetSpecies = 'dog' | 'cat' | 'other';
 export type PetAgeGroup = 'young' | 'adult' | 'senior';
 export type PetSizeGroup = 'small' | 'medium' | 'large';
 export type PetLocationKey = 'taipei' | 'newtaipei' | 'taoyuan' | 'taichung' | 'tainan' | 'kaohsiung';
+export type PetStatus = 'available' | 'hidden' | 'adopted';
 
 export interface Pet {
   id: string;
@@ -15,6 +16,7 @@ export interface Pet {
   location: string;
   locationKey: PetLocationKey;
   emoji: string;
+  status?: PetStatus;
   badge?: {
     label: string;
     tone: 'urgent' | 'new' | 'default';
