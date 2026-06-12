@@ -3,12 +3,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 
-const next = Astro.url.searchParams.get('next')?.trim() || '/auth/register/success';
+const next = Astro.url.searchParams.get('next')?.trim() || '/member';
 ---
 
 <BaseLayout
   title="會員註冊 - PawsHome"
-  description="建立你的 PawsHome 會員帳號。"
+  description="使用 Google 帳號登入並自動建立 PawsHome 會員。"
   noIndex={true}
 >
   <Header />
@@ -19,8 +19,8 @@ const next = Astro.url.searchParams.get('next')?.trim() || '/auth/register/succe
         <div class="search-card fade-in is-visible" style="max-width: 760px; margin: 0 auto;">
           <div style="text-align: center; margin-bottom: 1.5rem;">
             <p class="section-eyebrow">Member</p>
-            <h1 style="margin: 0.4rem 0 0.8rem;">會員註冊</h1>
-            <p class="pet-description">填入姓名與 Email，系統會把密碼寄到你的信箱。</p>
+            <h1 style="margin: 0.4rem 0 0.8rem;">使用 Google 建立會員</h1>
+            <p class="pet-description">第一次登入時會自動建立會員資料，不需要填 Email 驗證信。</p>
           </div>
 
           <div class="auth-tabs" role="tablist" aria-label="會員入口">
@@ -28,28 +28,15 @@ const next = Astro.url.searchParams.get('next')?.trim() || '/auth/register/succe
             <a class="auth-tab is-active" aria-current="page" href="/auth/register">註冊</a>
           </div>
 
-          <form class="apply-form" id="register-form" style="margin-top: 1.25rem;">
-            <div class="filter-group">
-              <label for="name">姓名</label>
-              <input id="name" name="name" class="filter-select" type="text" autocomplete="name" minlength="2" required />
-            </div>
-
-            <div class="filter-group">
-              <label for="email">Email</label>
-              <input id="email" name="email" class="filter-select" type="email" autocomplete="email" required />
-            </div>
-
-            <p class="pet-results-meta" id="register-status" aria-live="polite"></p>
-            <p class="pet-description" style="margin-top: -0.25rem;">
-              請到 Email 收取密碼，登入後可以在會員頁自行更改。
-            </p>
+          <div class="search-card" style="margin-top: 1.25rem; padding: 1.25rem;">
+            <h3>Google 帳號建立 / 登入</h3>
+            <p class="pet-description">按一下按鈕，系統會帶你去 Google 完成登入並自動建立會員。</p>
 
             <div class="hero-actions">
-              <button class="btn-primary" type="submit" id="register-button">送出註冊</button>
-              <a class="btn-outline" href="/auth/login">去登入</a>
+              <button class="btn-primary" type="button" id="google-auth-button">使用 Google 建立會員</button>
               <a class="btn-outline" href="/pets">先逛毛孩</a>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </section>
@@ -58,50 +45,15 @@ const next = Astro.url.searchParams.get('next')?.trim() || '/auth/register/succe
   <Footer />
 
   <script is:inline define:vars={{ next }}>
-    const form = document.querySelector('#register-form');
-    const status = document.querySelector('#register-status');
-    const button = document.querySelector('#register-button');
+    const button = document.querySelector('#google-auth-button');
+    const apiOrigin = window.PawsHomeConfig?.apiBaseUrl || window.location.origin;
 
-    form?.addEventListener('submit', async (event) => {
-      event.preventDefault();
+    const startGoogleAuth = () => {
+      const url = new URL('/api/auth/google/start', apiOrigin);
+      url.searchParams.set('next', next || '/member');
+      window.location.assign(url.toString());
+    };
 
-      if (!button || !form) return;
-      if (!form.reportValidity()) return;
-
-      button.disabled = true;
-      button.textContent = '送出中...';
-
-      const formData = new FormData(form);
-      const payload = {
-        name: String(formData.get('name') || ''),
-        email: String(formData.get('email') || ''),
-      };
-
-      try {
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(result.message || '註冊失敗');
-        }
-
-        const nextUrl = new URL(next || '/auth/register/success', window.location.origin);
-        if (result.member?.email) {
-          nextUrl.searchParams.set('email', result.member.email);
-        }
-        window.location.assign(nextUrl.toString());
-      } catch (error) {
-        if (status) status.textContent = error instanceof Error ? error.message : '註冊失敗，請稍後再試。';
-      } finally {
-        button.disabled = false;
-        button.textContent = '送出註冊';
-      }
-    });
+    button?.addEventListener('click', startGoogleAuth);
   </script>
 </BaseLayout>

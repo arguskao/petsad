@@ -3,12 +3,12 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Header from '../../../components/Header.astro';
 import Footer from '../../../components/Footer.astro';
 
-const email = Astro.url.searchParams.get('email')?.trim() || '';
+const next = Astro.url.searchParams.get('next')?.trim() || '/member';
 ---
 
 <BaseLayout
-  title="註冊已完成 - PawsHome"
-  description="你的會員註冊已完成，請到 Email 收取密碼。"
+  title="Google 登入完成 - PawsHome"
+  description="你的 Google 會員登入已完成，現在可以開始使用 PawsHome。"
   noIndex={true}
 >
   <Header />
@@ -19,17 +19,17 @@ const email = Astro.url.searchParams.get('email')?.trim() || '';
         <div class="search-card fade-in is-visible" style="max-width: 760px; margin: 0 auto;">
           <div style="text-align: center; margin-bottom: 1.5rem;">
             <p class="section-eyebrow">Member</p>
-            <h1 style="margin: 0.4rem 0 0.8rem;">註冊已完成</h1>
-            <p class="pet-description">請到 Email 收取密碼，收到後就可以直接登入。</p>
+            <h1 style="margin: 0.4rem 0 0.8rem;">登入已完成</h1>
+            <p class="pet-description">你已成功透過 Google 完成登入，現在可以開始使用會員功能。</p>
           </div>
 
           <div class="pet-details">
-            {email ? <span class="detail-item">✉️ 已寄送到：{email}</span> : null}
-            <span class="detail-item">🔑 如果信件還沒到，請先檢查垃圾郵件匣。</span>
+            <span class="detail-item">🔐 你現在已登入會員帳號</span>
+            <span class="detail-item">📬 不需要再收驗證信</span>
           </div>
 
           <div class="hero-actions">
-            <a class="btn-primary" href="/auth/login">前往登入</a>
+            <a class="btn-primary" href={next}>前往下一步</a>
             <a class="btn-outline" href="/pets">先逛毛孩</a>
           </div>
         </div>

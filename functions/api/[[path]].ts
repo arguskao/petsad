@@ -29,7 +29,17 @@ import {
   updateAdoptionGuideSectionInDatabase,
   updatePageCopyInDatabase,
 } from '../../src/lib/content-db';
+import { getAdminAccessState } from '../../src/lib/admin-access';
 import { isAdoptionRequestStatus } from '../../src/lib/adoption-status';
+import {
+  buildGoogleAuthorizationUrl,
+  createGoogleOAuthState,
+  exchangeGoogleAuthorizationCode,
+  fetchGoogleUserProfile,
+  GOOGLE_OAUTH_NEXT_COOKIE,
+  GOOGLE_OAUTH_STATE_COOKIE,
+  sanitizeInternalPath,
+} from '../../src/lib/google-oauth';
 import { getShelterByIdFromDatabase, updateShelterInDatabase } from '../../src/lib/shelters-db';
 import { getPetByIdFromDatabase, getPetsFromDatabase } from '../../src/lib/paws-db';
 
@@ -41,6 +51,9 @@ type ApiEnv = {
   MAIL_FROM_NAME?: string;
   MAILCHANNELS_API_KEY?: string;
   MAILCHANNELS_ENDPOINT?: string;
+  ADMIN_EMAIL_ALLOWLIST?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 };
 
 type AnalyticsDetail = Record<string, unknown>;
@@ -143,6 +156,28 @@ const isSecureRequest = (url: string) => new URL(url).protocol === 'https:';
 const isLocalOrigin = (origin: string | null) =>
   origin === 'http://localhost:4321' || origin === 'http://127.0.0.1:4321';
 
+const buildGoogleOAuthConfig = (c: { env: ApiEnv; req: { url: string } }) => {
+  const clientId = c.env.GOOGLE_CLIENT_ID?.trim() || '';
+  const clientSecret = c.env.GOOGLE_CLIENT_SECRET?.trim() || '';
+  const redirectUri = new URL('/api/auth/google/callback', c.req.url).toString();
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+  };
+};
+
+const setOAuthCookie = (c: any, name: string, value: string, maxAgeSeconds = 600) => {
+  setCookie(c, name, value, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure: isSecureRequest(c.req.url),
+    maxAge: maxAgeSeconds,
+  });
+};
+
 type FavoriteOwner =
   | {
       kind: 'member';
@@ -206,6 +241,8 @@ app.get('/', (c) =>
     dataSource: 'Cloudflare D1 paws',
     endpoints: [
       'GET /api/auth/me',
+      'GET /api/auth/google/start',
+      'GET /api/auth/google/callback',
       'POST /api/auth/register',
       'POST /api/auth/login',
       'POST /api/auth/logout',
@@ -256,13 +293,149 @@ app.get('/auth/me', async (c) => {
   const member = await getSessionMember(c.env.paws, token);
 
   if (!member) {
-    return c.json({ ok: false, message: '尚未登入。' }, 401);
+    return c.json({
+      ok: true,
+      authenticated: false,
+      member: null,
+      message: '尚未登入。',
+    });
   }
 
   return c.json({
     ok: true,
+    authenticated: true,
     member,
   });
+});
+
+app.get('/auth/google/start', async (c) => {
+  const config = buildGoogleOAuthConfig(c);
+  const next = sanitizeInternalPath(c.req.query('next'), '/member');
+
+  if (!config.clientId || !config.clientSecret) {
+    const url = new URL('/auth/login', c.req.url);
+    url.searchParams.set('error', 'Google 登入設定尚未完成，請先補 GOOGLE_CLIENT_ID 與 GOOGLE_CLIENT_SECRET。');
+    url.searchParams.set('next', next);
+    return c.redirect(url.toString(), 302);
+  }
+
+  const state = createGoogleOAuthState();
+  setOAuthCookie(c, GOOGLE_OAUTH_STATE_COOKIE, state, 600);
+  setOAuthCookie(c, GOOGLE_OAUTH_NEXT_COOKIE, next, 600);
+
+  return c.redirect(buildGoogleAuthorizationUrl(config, state), 302);
+});
+
+app.get('/auth/google/callback', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const config = buildGoogleOAuthConfig(c);
+  const code = c.req.query('code')?.trim() || '';
+  const returnedState = c.req.query('state')?.trim() || '';
+  const error = c.req.query('error')?.trim() || '';
+  const errorDescription = c.req.query('error_description')?.trim() || '';
+  const stateCookie = getCookie(c, GOOGLE_OAUTH_STATE_COOKIE) || '';
+  const nextPath = sanitizeInternalPath(getCookie(c, GOOGLE_OAUTH_NEXT_COOKIE), '/member');
+
+  deleteCookie(c, GOOGLE_OAUTH_STATE_COOKIE, { path: '/' });
+  deleteCookie(c, GOOGLE_OAUTH_NEXT_COOKIE, { path: '/' });
+
+  const redirectWithError = (message: string) => {
+    const url = new URL('/auth/login', c.req.url);
+    url.searchParams.set('error', message);
+    url.searchParams.set('next', nextPath);
+    return c.redirect(url.toString(), 302);
+  };
+
+  if (!config.clientId || !config.clientSecret) {
+    return redirectWithError('Google 登入設定尚未完成，請聯絡管理者。');
+  }
+
+  if (error) {
+    return redirectWithError(errorDescription || 'Google 登入已取消。');
+  }
+
+  if (!code) {
+    return redirectWithError('Google 回傳的授權碼缺失。');
+  }
+
+  if (!returnedState || returnedState !== stateCookie) {
+    return redirectWithError('Google 登入驗證失敗，請重新登入。');
+  }
+
+  try {
+    const tokenResponse = await exchangeGoogleAuthorizationCode({
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      code,
+      redirectUri: config.redirectUri,
+    });
+
+    const profile = await fetchGoogleUserProfile(tokenResponse.accessToken);
+
+    if (!profile.verifiedEmail) {
+      return redirectWithError('Google 帳號尚未通過 Email 驗證。');
+    }
+
+    const email = normalizeEmail(profile.email);
+    const name = normalizeName(profile.name) || profile.email;
+    let member = await getMemberByEmail(db, email);
+
+    if (!member) {
+      const passwordSalt = createSalt();
+      member = await createMember(db, {
+        id: crypto.randomUUID(),
+        email,
+        name,
+        passwordHash: await hashPassword(createTemporaryPassword(), passwordSalt),
+        passwordSalt,
+        mustChangePassword: false,
+      });
+    } else {
+      await db
+        .prepare(
+          `
+          UPDATE members
+          SET
+            must_change_password = 0,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          `,
+        )
+        .bind(member.id)
+        .run();
+      member = await getMemberById(db, member.id);
+    }
+
+    if (!member) {
+      return redirectWithError('建立會員失敗。');
+    }
+
+    const token = createSessionToken();
+    await createMemberSession(db, {
+      id: crypto.randomUUID(),
+      memberId: member.id,
+      token,
+      expiresAt: sessionExpiresAt(),
+    });
+
+    setCookie(c, AUTH_COOKIE_NAME, token, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: isSecureRequest(c.req.url),
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    const redirectUrl = new URL(nextPath, c.req.url);
+    return c.redirect(redirectUrl.toString(), 302);
+  } catch (error) {
+    return redirectWithError(error instanceof Error ? error.message : 'Google 登入失敗，請稍後再試。');
+  }
 });
 
 app.post('/auth/register', async (c) => {
@@ -708,6 +881,28 @@ app.post('/favorites/merge', async (c) => {
     mergedCount,
     total: memberPetIds.size,
   });
+});
+
+app.use('/admin/*', async (c, next) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const token = getCookie(c, AUTH_COOKIE_NAME) || '';
+  const member = await getSessionMember(db, token);
+  const access = getAdminAccessState(member, c.env.ADMIN_EMAIL_ALLOWLIST);
+
+  if (access.allowed) {
+    return next();
+  }
+
+  if (access.reason === 'not_logged_in') {
+    return c.json({ ok: false, message: '尚未登入。' }, 401);
+  }
+
+  return c.json({ ok: false, message: '目前登入帳號沒有後台權限。' }, 403);
 });
 
 app.get('/admin/summary', async (c) => {

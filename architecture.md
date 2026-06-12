@@ -22,9 +22,10 @@
 ## 已落地的資料流
 
 - `/api/auth/me` 讀取登入中的會員
-- `/api/auth/register` 建立會員並寄出臨時密碼 Email
-- `/api/auth/login` 建立 session
+- `/api/auth/google/start` 發起 Google OAuth 登入
+- `/api/auth/google/callback` 完成 Google OAuth callback、建立或連結會員與 session
 - `/api/auth/logout` 撤銷 session
+- `/api/auth/register` 與 `/api/auth/login` 保留相容舊流程
 - `/api/pets` 讀取 D1 `paws`
 - `/api/pets/:id` 讀取 D1 `paws`
 - `/api/stories` 讀取 D1 `paws`
@@ -91,12 +92,13 @@
 BaseLayout 會記錄 page view 與錯誤事件，申請表單也會送出 form submit 事件，供 `/admin/analytics` 觀看。
 
 管理後台目前已能從列表進入單筆申請詳情，直接核准、拒絕或改回待處理；也能從毛孩與收容所管理入口查看與編輯目前資料。之後再補更完整的驗證與管理能力。
+後台正式化的下一步會先做登入驗證，再做角色權限與操作紀錄，避免現在的內部入口長期維持裸露狀態。後台路由目前已改成只允許登入且在 `ADMIN_EMAIL_ALLOWLIST` 內的會員進入，API 的 `/api/admin/*` 也共用同樣的權限檢查。
 毛孩管理也支援切換 `available`、`hidden`、`adopted` 狀態，前台列表只顯示 `available` 的毛孩。
 毛孩管理第一版也已支援新增毛孩，封面圖已可直接上傳圖片並回填網址欄位，原本的網址欄位也還保留作為備援。
 收容所管理也已可從後台查看與編輯，並同步反映到前台的合作夥伴頁與首頁。
-會員最小版已可註冊、登入、登出，並透過 session cookie 讀取目前登入狀態。
-註冊 Email 目前透過 MailChannels Email API 發送，正式站需設定 `MAILCHANNELS_API_KEY`、`MAIL_FROM_ADDRESS`、`MAIL_FROM_NAME`。
-由於 MailChannels 需要在寄件網域上設定 SPF 與 `_mailchannels` TXT，正式寄信實務上要用你自己的網域，不能直接用 `pages.dev` 當寄件網域。
+會員最小版已可透過 Google 登入、登出，並透過 session cookie 讀取目前登入狀態。
+正式站需要設定 `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`，並把正式網域與本機開發網域的 OAuth callback URL 加進 Google Cloud Console。
+如果你還保留舊的 Email 註冊流程，它仍會依賴 MailChannels 與寄件網域驗證，但它已不是主要會員路徑。
 `BaseLayout` 也已補好可配置的 canonical、社群圖與 `noindex`，後台頁會預設避免被搜尋引擎收錄。
 
 ## 前端結構

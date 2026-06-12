@@ -4,3 +4,6 @@ dist/
 .vscode/
 .DS_Store
 *.log
+.wrangler/tmp/
+.wrangler/state/v3/cache/
+.wrangler/state/v3/r2/

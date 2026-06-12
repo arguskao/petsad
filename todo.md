@@ -34,8 +34,8 @@
 - `/api/admin/adoption-guide`、`/api/admin/adoption-guide/:id` 已可用
 - `/api/admin/site-copies`、`/api/admin/site-copies/:id` 已可用
 - `/api/admin/analytics` 已可用
-- `/api/auth/me`、`/api/auth/register`、`/api/auth/login`、`/api/auth/logout` 已可用
-- `/api/auth/register` 已改成姓名 + Email 註冊，並串接 MailChannels Email API
+- `/api/auth/me`、`/api/auth/google/start`、`/api/auth/google/callback`、`/api/auth/logout` 已可用
+- `/auth/login`、`/auth/register` 已改成 Google 登入入口
 - `POST /api/adoptions` 已寫入 `adoption_requests`
 - 收藏已可會員同步，登入後會自動合併匿名收藏，未登入時仍保留匿名 localStorage 與 D1 同步
 - `/pets` 頁已直接改成讀 `/api/pets`
@@ -44,8 +44,8 @@
 - `/auth/login`、`/auth/register`、`/member` 已建立
 - `/faq` 已建立，並會讀取 D1 FAQ 資料
 - `/adoption-guide` 已建立，並會讀取 D1 領養須知資料
-- 註冊流程已改成由 Email 寄送臨時密碼
-- 正式站寄信仍需完成 `MAILCHANNELS_API_KEY`、`MAIL_FROM_ADDRESS` 與寄件網域 DNS 設定
+- 註冊 / 登入流程已改成由 Google OAuth 建立或連結會員
+- 正式站 Google 登入仍需完成 `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET` 與 OAuth redirect URI 設定
 - `/favorites` 頁已可查看收藏清單
 - `/favorites` 頁已可清空收藏
 - `/favorites` 頁已可搜尋與排序收藏
@@ -134,13 +134,13 @@
   - 已把 `BaseLayout` 做成可配置 canonical / image / noindex
   - admin 頁已避免被搜尋引擎收錄
   - 公開頁之後可逐頁補 canonical 與社群圖
-- [ ] 完成會員寄信正式設定
+- [ ] 完成 Google 登入正式設定
   - 先記錄，之後再處理
-  - 目前正式站註冊會因缺少寄信設定而回 `503`
-  - 設定 `MAILCHANNELS_API_KEY`
-  - 設定 `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME`
-  - 在自有網域補上 SPF 與 `_mailchannels` TXT
-  - 補完後再重新測試 `/api/auth/register`
+  - 目前正式站 Google 登入會因缺少 OAuth 設定而回到登入頁
+  - 設定 `GOOGLE_CLIENT_ID`
+  - 設定 `GOOGLE_CLIENT_SECRET`
+  - 在 Google Cloud Console 補上正式網域與本機的 OAuth redirect URI
+  - 補完後再重新測試 `/api/auth/google/start`
 
 ## 中期目標
 
@@ -210,17 +210,25 @@
 
 ## 技術債與待決策
 
-- [ ] 寵物、故事、收容所要不要全面移到 D1
-- [ ] 申請流程要先維持寫入 + 審核，還是改成更完整狀態機
+- [x] 寵物、故事、收容所要不要全面移到 D1
+  - 目前決定先維持 D1 為主要資料來源
+  - 靜態資料只保留給開發 / 離線 fallback
+- [x] 申請流程要先維持寫入 + 審核，還是改成更完整狀態機
+  - 目前決定先維持 `pending / approved / rejected`
+  - 先把狀態規則收斂成共用定義，後續再視需求升級
 - [ ] 後台要不要逐步擴充成正式管理系統
+  - 先補登入驗證，避免後台裸露給所有人
+  - 再補角色與權限，區分可看、可編、可審核的人
+  - 接著補操作紀錄，保留誰改了什麼的痕跡
+  - 最後才做更完整的流程與批次操作
 
 ## 下一週優先順序
 
-1. 先完成會員寄信正式設定
-   - 設定 `MAILCHANNELS_API_KEY`
-   - 設定 `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME`
-   - 補 SPF 與 `_mailchannels` TXT
-   - 再重測 `/api/auth/register`
+1. 先完成 Google 登入正式設定
+   - 設定 `GOOGLE_CLIENT_ID`
+   - 設定 `GOOGLE_CLIENT_SECRET`
+   - 補正式網域與本機的 OAuth redirect URI
+   - 再重測 `/api/auth/google/start`
 2. 再決定資料與流程的兩個核心方向
    - `pets`、`stories`、`shelters` 已先維持 D1 為資料來源，fallback 只保留給開發 / 離線
    - 申請流程先維持 `pending / approved / rejected`，並把狀態規則收斂成共用定義
@@ -228,5 +236,8 @@
    - 讓更多頁面文案與內容區塊可由後台維護
    - 先挑最常改、最影響營運的區塊
 4. 最後再擴充正式管理系統
-   - 規劃更完整的後台權限與操作流程
-   - 把目前的最小版後台逐步平台化
+   - 先補後台登入驗證
+   - 先設定 `ADMIN_EMAIL_ALLOWLIST`
+   - 再補角色與權限
+   - 接著補操作紀錄與審核軌跡
+   - 最後把最小版後台逐步平台化

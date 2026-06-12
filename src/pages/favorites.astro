@@ -5,20 +5,20 @@ import Footer from '../components/Footer.astro';
 import SectionHeader from '../components/SectionHeader.astro';
 ---
 
-<BaseLayout title="我的收藏 - PawsHome" description="查看你收藏的毛孩清單，重新回到牠們的故事。">
+<BaseLayout title="會員中心 - 收藏 - PawsHome" description="在會員中心查看你收藏的毛孩清單，重新回到牠們的故事。">
   <Header />
 
   <main>
     <section class="hero" style="min-height: auto;">
       <div class="container">
         <SectionHeader
-          eyebrow="Favorites"
-          title="我的收藏"
-          description="把你喜歡的毛孩先收進來，慢慢挑選最適合的那一位。"
+          eyebrow="Member / Favorites"
+          title="會員中心的收藏"
+          description="收藏會跟著會員帳號走，這裡是你回頭比較、再次認識毛孩的地方。"
         />
 
         <div class="search-card fade-in is-visible">
-          <h3>收藏清單</h3>
+          <h3>收藏子頁</h3>
           <p class="pet-description">
             這裡會顯示你收藏過的毛孩。登入後會同步到會員帳號，未登入時則保留在這台裝置。
           </p>
@@ -44,11 +44,12 @@ import SectionHeader from '../components/SectionHeader.astro';
           </div>
           <p class="pet-results-meta" id="favorites-meta" aria-live="polite"></p>
           <div class="hero-actions" style="margin-top: 1rem;">
+            <a class="btn-outline" href="/member">回到會員中心</a>
             <button class="btn-outline" type="button" id="clear-favorites">清空收藏</button>
             <a class="btn-primary" href="/pets">繼續找毛孩</a>
           </div>
           <p class="pet-empty-state" id="favorites-empty" hidden>
-            目前還沒有收藏任何毛孩，去 <a href="/pets">毛孩列表</a> 看看吧。
+            目前還沒有收藏任何毛孩，先回 <a href="/member">會員中心</a> 看看吧。
           </p>
         </div>
       </div>
@@ -192,7 +193,7 @@ import SectionHeader from '../components/SectionHeader.astro';
       if (!grid) return;
 
       const visibleItems = filterFavorites(sortFavorites(favoriteItems));
-      const scopeLabel = favoriteScope === 'member' ? '會員收藏' : '這台裝置的收藏';
+          const scopeLabel = favoriteScope === 'member' ? '會員收藏' : '這台裝置的收藏';
       grid.innerHTML = visibleItems.map((item) => renderPetCard(item)).join('');
       meta.textContent = favoriteItems.length === 0
         ? `你目前還沒有任何${scopeLabel}。`

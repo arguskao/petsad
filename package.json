@@ -1,5 +1,5 @@
 {
-    "name": "saas-landing-page",
+    "name": "paws",
     "version": "1.0.0",
     "type": "module",
     "scripts": {
@@ -12,7 +12,10 @@
         "deploy:legacy": "wrangler pages deploy ./public",
         "build": "astro build && tsc",
         "build:astro": "astro build",
-        "preview:astro": "astro preview"
+        "preview:astro": "astro preview",
+        "seed:demo": "node scripts/seed-demo.mjs",
+        "seed:demo:local": "node scripts/seed-demo.mjs",
+        "seed:demo:remote": "node scripts/seed-demo.mjs --remote"
     },
     "dependencies": {
         "hono": "^4.0.0"

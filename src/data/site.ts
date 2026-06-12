@@ -6,7 +6,6 @@ export const site = {
 
 export const navLinks = [
   { label: '尋找毛孩', href: '/pets' },
-  { label: '我的收藏', href: '/favorites' },
   { label: '成功故事', href: '/stories' },
   { label: '合作夥伴', href: '/shelters' },
   { label: '領養流程', href: '/#how-it-works' },
@@ -26,7 +25,6 @@ export const footerColumns = [
     title: '關於我們',
     links: [
       { label: '成功故事', href: '/stories' },
-      { label: '我的收藏', href: '/favorites' },
       { label: '合作夥伴', href: '/shelters' },
       { label: '我們的使命', href: '#' },
       { label: '聯絡我們', href: '#' },

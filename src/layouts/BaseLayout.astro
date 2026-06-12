@@ -42,36 +42,10 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <slot name="head" />
-  </head>
-  <body>
-    <slot />
-
     <script is:inline>
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const apiBaseUrl = isLocalDev && window.location.port === '4321' ? 'http://127.0.0.1:8787' : '';
-      const navbar = document.querySelector('.navbar');
-      const heroStats = document.querySelector('.hero-stats');
-      const fadeTargets = document.querySelectorAll('.fade-in');
-      const favoritesStorageKey = 'paws-favorites';
-      const favoriteClientIdKey = 'paws-favorite-client-id';
-      const favoriteMemberStoragePrefix = 'paws-favorites-member-';
       const originalFetch = window.fetch.bind(window);
-
-      const favoriteContext = {
-        kind: 'anonymous',
-        clientId: '',
-        member: null,
-      };
-
-      let favoriteStorageKey = favoritesStorageKey;
-      let favoriteReady = false;
-      let resolveFavoriteReady = () => {};
-
-      const favoriteReadyPromise = new Promise((resolve) => {
-        resolveFavoriteReady = resolve;
-      });
 
       window.PawsHomeConfig = {
         apiBaseUrl,
@@ -99,6 +73,35 @@ const {
 
         return originalFetch(nextUrl, nextInit);
       };
+    </script>
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+
+    <script is:inline>
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const layoutApiBaseUrl = window.PawsHomeConfig?.apiBaseUrl || '';
+      const navbar = document.querySelector('.navbar');
+      const heroStats = document.querySelector('.hero-stats');
+      const fadeTargets = document.querySelectorAll('.fade-in');
+      const favoritesStorageKey = 'paws-favorites';
+      const favoriteClientIdKey = 'paws-favorite-client-id';
+      const favoriteMemberStoragePrefix = 'paws-favorites-member-';
+
+      const favoriteContext = {
+        kind: 'anonymous',
+        clientId: '',
+        member: null,
+      };
+
+      let favoriteStorageKey = favoritesStorageKey;
+      let favoriteReady = false;
+      let resolveFavoriteReady = () => {};
+
+      const favoriteReadyPromise = new Promise((resolve) => {
+        resolveFavoriteReady = resolve;
+      });
 
       const showNotification = (message) => {
         const existing = document.querySelector('.notification');
@@ -354,7 +357,7 @@ const {
       };
 
       const sendAnalyticsEvent = async (payload) => {
-        const analyticsUrl = apiBaseUrl ? `${apiBaseUrl}/api/analytics/events` : '/api/analytics/events';
+        const analyticsUrl = layoutApiBaseUrl ? `${layoutApiBaseUrl}/api/analytics/events` : '/api/analytics/events';
         const body = JSON.stringify({
           sessionId: getAnalyticsSessionId(),
           ...payload,
