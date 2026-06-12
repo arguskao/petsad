@@ -17,19 +17,25 @@ import SectionHeader from '../components/SectionHeader.astro';
           eyebrow="Apply"
           title="領養 / 中途申請"
           description="選擇你想認識的毛孩，填寫資料後直接送出申請。"
+          eyebrowCopyKey="apply-hero-eyebrow"
+          titleCopyKey="apply-hero-title"
+          descriptionCopyKey="apply-hero-description"
         />
 
         <div class="search-card fade-in is-visible" id="apply-member-card">
-          <h3>會員快速帶入</h3>
-          <p class="pet-description" id="apply-member-message">
+          <h3 data-copy-key="apply-member-title">會員快速帶入</h3>
+          <p class="pet-description" id="apply-member-message" data-copy-key="apply-member-message">
             如果你已登入，我們會自動帶入姓名與 Email，讓申請更快一點。
           </p>
           <div class="pet-details" id="apply-member-details" hidden></div>
+          <div class="hero-actions" style="margin-top: 0.5rem;">
+            <a class="btn-outline" href="/adoption-guide">先看領養須知</a>
+          </div>
         </div>
 
         <div class="search-card fade-in is-visible">
-          <h3>申請資訊</h3>
-          <p class="pet-description">請先選擇毛孩，再填寫聯絡方式與簡短說明，我們會把資料送進 D1。</p>
+          <h3 data-copy-key="apply-form-title">申請資訊</h3>
+          <p class="pet-description" data-copy-key="apply-form-description">請先選擇毛孩，再填寫聯絡方式與簡短說明，我們會把資料送進 D1。</p>
 
           <form class="apply-form" id="apply-form">
             <div class="filter-group">
@@ -96,7 +102,7 @@ import SectionHeader from '../components/SectionHeader.astro';
             <p class="pet-results-meta" id="form-status" aria-live="polite"></p>
 
             <div class="hero-actions">
-              <button class="btn-primary" type="submit" id="submit-button">送出申請</button>
+              <button class="btn-primary" type="submit" id="submit-button" data-copy-key="apply-submit-button">送出申請</button>
               <a class="btn-outline" href="/pets">先去看看毛孩</a>
             </div>
           </form>
@@ -241,6 +247,14 @@ import SectionHeader from '../components/SectionHeader.astro';
         note: String(formData.get('note') || ''),
       };
 
+      window.PawsHomeAnalytics?.track('form_submit', {
+        source: 'adoption',
+        status: 'started',
+        detail: {
+          petId: payload.petId,
+        },
+      });
+
       try {
         const response = await fetch('/api/adoptions', {
           method: 'POST',
@@ -264,12 +278,30 @@ import SectionHeader from '../components/SectionHeader.astro';
         const petId = result.request?.petId || payload.petId;
         const petName = result.request?.petName || selectedPet?.name || '';
 
+        window.PawsHomeAnalytics?.track('form_submit', {
+          source: 'adoption',
+          status: 'success',
+          detail: {
+            requestId,
+            petId,
+            petName,
+          },
+        });
+
         const nextUrl = new URL('/apply/success', window.location.origin);
         if (requestId) nextUrl.searchParams.set('request', requestId);
         if (petId) nextUrl.searchParams.set('pet', petId);
         if (petName) nextUrl.searchParams.set('name', petName);
         window.location.assign(nextUrl.toString());
       } catch (error) {
+        window.PawsHomeAnalytics?.track('form_submit', {
+          source: 'adoption',
+          status: 'error',
+          detail: {
+            message: error instanceof Error ? error.message : '申請送出失敗，請稍後再試。',
+          },
+        });
+
         if (status) {
           status.textContent = error instanceof Error ? error.message : '申請送出失敗，請稍後再試。';
         }
@@ -293,5 +325,15 @@ import SectionHeader from '../components/SectionHeader.astro';
         memberMessage.textContent = '會員資料載入失敗，請直接填寫表單。';
       }
     });
+
+    const bootstrapApplyCopies = () => {
+      window.PawsHomeContent?.loadPageCopies('apply').catch(() => {});
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrapApplyCopies, { once: true });
+    } else {
+      bootstrapApplyCopies();
+    }
   </script>
 </BaseLayout>

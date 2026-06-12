@@ -1,0 +1,101 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import { adoptionGuideSections } from '../data/content';
+---
+
+<BaseLayout
+  title="領養須知 - PawsHome"
+  description="在送出申請前，先看懂領養流程、照護重點與常見注意事項。"
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Guide"
+          title="領養須知"
+          description="把申請前、申請中、帶回家後最重要的事情先整理好，讓每一次領養都更安心。"
+        />
+
+        <div class="search-card fade-in is-visible guide-intro-card">
+          <p class="pet-description" id="guide-meta">正在讀取領養須知資料...</p>
+          <div class="hero-actions">
+            <a class="btn-primary" href="/apply">開始送出申請</a>
+            <a class="btn-outline" href="/faq">先看常見問題</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="adoption-guide-grid" id="guide-grid" aria-live="polite">
+          {adoptionGuideSections.map((section) => (
+            <article class="search-card fade-in is-visible guide-card" id={section.id}>
+              <p class="guide-highlight">{section.highlight}</p>
+              <h3>{section.title}</h3>
+              <p class="pet-description">{section.body}</p>
+            </article>
+          ))}
+        </div>
+        <p class="pet-empty-state" id="guide-empty" hidden>目前沒有可顯示的領養須知內容。</p>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const guideGrid = document.querySelector('#guide-grid');
+    const guideMeta = document.querySelector('#guide-meta');
+    const guideEmpty = document.querySelector('#guide-empty');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const renderGuideCard = (section) => `
+      <article class="search-card fade-in is-visible guide-card" id="${escapeHtml(section.id)}">
+        <p class="guide-highlight">${escapeHtml(section.highlight)}</p>
+        <h3>${escapeHtml(section.title)}</h3>
+        <p class="pet-description">${escapeHtml(section.body)}</p>
+      </article>
+    `;
+
+    const loadGuideSections = async () => {
+      if (!guideGrid) return;
+
+      const response = await fetch('/api/adoption-guide');
+      const data = await response.json().catch(() => ({}));
+      const sections = Array.isArray(data.results) ? data.results : [];
+
+      if (guideMeta) {
+        guideMeta.textContent = sections.length
+          ? `目前共有 ${sections.length} 個領養須知區塊，內容會直接由 D1 管理。`
+          : '目前沒有可顯示的領養須知內容。';
+      }
+
+      if (!sections.length) {
+        if (guideEmpty) guideEmpty.hidden = false;
+        return;
+      }
+
+      guideGrid.innerHTML = sections.map(renderGuideCard).join('');
+      if (guideEmpty) guideEmpty.hidden = true;
+    };
+
+    loadGuideSections().catch(() => {
+      if (guideMeta) {
+        guideMeta.textContent = '領養須知資料載入失敗，請稍後再試。';
+      }
+    });
+  </script>
+</BaseLayout>

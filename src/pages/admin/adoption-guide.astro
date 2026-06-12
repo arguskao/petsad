@@ -1,0 +1,429 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="領養須知管理 - PawsHome"
+  description="維護前台領養須知頁顯示的內容。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="領養須知管理"
+          description="把申請前的注意事項拆成區塊管理，讓前台與後台可以同步更新。"
+        />
+
+        <div class="search-card fade-in is-visible admin-pets-toolbar">
+          <div>
+            <h3>內容提示</h3>
+            <p class="pet-description">
+              這裡會直接更新 D1 的領養須知區塊，前台頁面會同步讀取最新內容。
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/adoption-guide">查看前台頁</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="guide-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Sections</p>
+            <strong id="guide-total">-</strong>
+            <span>區塊總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Highlight</p>
+            <strong id="guide-highlights">-</strong>
+            <span>高亮標籤數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Focus</p>
+            <strong id="guide-selected">-</strong>
+            <span>目前選取</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">First</p>
+            <strong id="guide-first">-</strong>
+            <span>首頁優先區塊</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-pets-layout">
+          <article class="admin-panel search-card fade-in is-visible admin-pets-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Guide Directory</p>
+                <h3>領養須知清單</h3>
+              </div>
+              <span class="admin-panel-note" id="guide-count">-</span>
+            </div>
+
+            <div class="admin-pets-search">
+              <label class="admin-search-field" for="guide-admin-search">
+                <span>搜尋領養須知</span>
+                <input id="guide-admin-search" type="search" placeholder="輸入標題、標籤、內容或 ID" />
+              </label>
+              <button class="btn-outline" type="button" id="guide-admin-refresh">重新整理</button>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-pets-table">
+                <thead>
+                  <tr>
+                    <th>區塊</th>
+                    <th>標籤</th>
+                    <th>排序</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="guide-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="admin-panel search-card fade-in is-visible admin-pet-detail-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Guide Editor</p>
+                <h3>領養須知編輯</h3>
+              </div>
+              <span class="admin-panel-note" id="guide-detail-id">未選擇</span>
+            </div>
+
+            <form class="admin-pet-form" id="guide-editor-form">
+              <div class="admin-detail-pet">
+                <div class="admin-detail-pet-emoji" id="guide-detail-highlight">?</div>
+                <div>
+                  <h3 id="guide-detail-title">請從左側選擇領養須知</h3>
+                  <p class="pet-description" id="guide-detail-body">這裡會顯示完整內容。</p>
+                </div>
+              </div>
+
+              <div class="admin-form-grid">
+                <label class="admin-search-field">
+                  <span>ID</span>
+                  <input id="guide-field-id" type="text" readonly />
+                </label>
+                <label class="admin-search-field">
+                  <span>標籤</span>
+                  <input id="guide-field-highlight" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>顯示順序</span>
+                  <input id="guide-field-sort-order" type="number" min="0" step="1" required />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>標題</span>
+                  <input id="guide-field-title" type="text" required />
+                </label>
+              </div>
+
+              <label class="admin-search-field admin-full-width">
+                <span>內容</span>
+                <textarea id="guide-field-body" rows="8" required></textarea>
+              </label>
+
+              <div class="hero-actions admin-detail-actions">
+                <a class="btn-outline" href="/adoption-guide" id="guide-detail-public">前台頁</a>
+              </div>
+
+              <div class="hero-actions admin-detail-actions">
+                <button class="btn-primary" type="submit" id="guide-save-button" disabled>儲存變更</button>
+                <button class="btn-outline" type="button" id="guide-reset-button" disabled>重設</button>
+              </div>
+
+              <p class="pet-description" id="guide-detail-hint">從左側列表點選區塊後，這裡會載入資料。</p>
+            </form>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const guideTotal = document.querySelector('#guide-total');
+    const guideHighlights = document.querySelector('#guide-highlights');
+    const guideSelected = document.querySelector('#guide-selected');
+    const guideFirst = document.querySelector('#guide-first');
+    const guideCount = document.querySelector('#guide-count');
+    const guideTableBody = document.querySelector('#guide-table-body');
+    const searchInput = document.querySelector('#guide-admin-search');
+    const refreshButton = document.querySelector('#guide-admin-refresh');
+    const guideDetailId = document.querySelector('#guide-detail-id');
+    const guideDetailHighlight = document.querySelector('#guide-detail-highlight');
+    const guideDetailTitle = document.querySelector('#guide-detail-title');
+    const guideDetailBody = document.querySelector('#guide-detail-body');
+    const guideDetailHint = document.querySelector('#guide-detail-hint');
+    const guideEditorForm = document.querySelector('#guide-editor-form');
+    const guideSaveButton = document.querySelector('#guide-save-button');
+    const guideResetButton = document.querySelector('#guide-reset-button');
+    const guideFieldId = document.querySelector('#guide-field-id');
+    const guideFieldHighlight = document.querySelector('#guide-field-highlight');
+    const guideFieldTitle = document.querySelector('#guide-field-title');
+    const guideFieldBody = document.querySelector('#guide-field-body');
+    const guideFieldSortOrder = document.querySelector('#guide-field-sort-order');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    let allGuideSections = [];
+    let currentGuideSections = [];
+    let currentGuideId = '';
+    let currentGuideSnapshot = null;
+
+    const renderRow = (section) => `
+      <tr>
+        <td>
+          <a href="/adoption-guide#${escapeHtml(section.id)}">${escapeHtml(section.title)}</a>
+          <div class="admin-table-subtitle">${escapeHtml(section.id)}</div>
+          <div class="admin-table-subtitle">${escapeHtml(section.body)}</div>
+        </td>
+        <td><span class="admin-badge default">${escapeHtml(section.highlight)}</span></td>
+        <td>${escapeHtml(String(section.sortOrder ?? 0))}</td>
+        <td>
+          <div class="admin-row-actions">
+            <a class="admin-action-btn secondary" href="/adoption-guide#${escapeHtml(section.id)}">前台頁</a>
+            <a class="admin-action-btn secondary" href="/admin/adoption-guide?id=${encodeURIComponent(section.id)}">查看詳情</a>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const setDetailState = (message) => {
+      if (guideDetailHint) guideDetailHint.textContent = message;
+    };
+
+    const fillForm = (section) => {
+      if (!section) return;
+
+      if (guideFieldId) guideFieldId.value = section.id || '';
+      if (guideFieldHighlight) guideFieldHighlight.value = section.highlight || '';
+      if (guideFieldTitle) guideFieldTitle.value = section.title || '';
+      if (guideFieldBody) guideFieldBody.value = section.body || '';
+      if (guideFieldSortOrder) guideFieldSortOrder.value = String(section.sortOrder ?? 0);
+      if (guideSaveButton) guideSaveButton.disabled = false;
+      if (guideResetButton) guideResetButton.disabled = false;
+    };
+
+    const snapshotForm = () => ({
+      id: guideFieldId?.value || '',
+      highlight: guideFieldHighlight?.value || '',
+      title: guideFieldTitle?.value || '',
+      body: guideFieldBody?.value || '',
+      sortOrder: Number(guideFieldSortOrder?.value || 0),
+    });
+
+    const renderStats = (sections) => {
+      const highlightCount = new Set(sections.map((section) => section.highlight).filter(Boolean));
+      const firstSection = [...sections].sort((left, right) => Number(left.sortOrder || 0) - Number(right.sortOrder || 0))[0];
+
+      if (guideTotal) guideTotal.textContent = String(sections.length);
+      if (guideHighlights) guideHighlights.textContent = String(highlightCount.size);
+      if (guideSelected) guideSelected.textContent = currentGuideId ? '1' : '0';
+      if (guideFirst) guideFirst.textContent = firstSection?.title || '-';
+      if (guideCount) guideCount.textContent = `${sections.length} 筆`;
+    };
+
+    const renderSections = () => {
+      if (!guideTableBody) return;
+
+      if (!currentGuideSections.length) {
+        guideTableBody.innerHTML = '<tr><td colspan="4">目前沒有資料</td></tr>';
+        renderStats(currentGuideSections);
+        return;
+      }
+
+      guideTableBody.innerHTML = currentGuideSections.map(renderRow).join('');
+      renderStats(currentGuideSections);
+    };
+
+    const selectGuideSection = (section, { updateUrl = true } = {}) => {
+      currentGuideId = section?.id || '';
+      currentGuideSnapshot = section
+        ? {
+            id: section.id,
+            highlight: section.highlight,
+            title: section.title,
+            body: section.body,
+            sortOrder: Number(section.sortOrder ?? 0),
+          }
+        : null;
+
+      if (!section) {
+        if (guideDetailId) guideDetailId.textContent = '未選擇';
+        if (guideDetailHighlight) guideDetailHighlight.textContent = '?';
+        if (guideDetailTitle) guideDetailTitle.textContent = '請從左側選擇領養須知';
+        if (guideDetailBody) guideDetailBody.textContent = '這裡會顯示完整內容。';
+        if (guideFieldId) guideFieldId.value = '';
+        if (guideFieldHighlight) guideFieldHighlight.value = '';
+        if (guideFieldTitle) guideFieldTitle.value = '';
+        if (guideFieldBody) guideFieldBody.value = '';
+        if (guideFieldSortOrder) guideFieldSortOrder.value = '0';
+        if (guideSaveButton) guideSaveButton.disabled = true;
+        if (guideResetButton) guideResetButton.disabled = true;
+        setDetailState('從左側列表點選區塊後，這裡會載入資料。');
+        renderStats(currentGuideSections);
+        if (updateUrl) window.history.replaceState({}, '', '/admin/adoption-guide');
+        return;
+      }
+
+      if (guideDetailId) guideDetailId.textContent = `區塊 ID：${section.id}`;
+      if (guideDetailHighlight) guideDetailHighlight.textContent = section.highlight || '?';
+      if (guideDetailTitle) guideDetailTitle.textContent = section.title || '-';
+      if (guideDetailBody) guideDetailBody.textContent = section.body || '-';
+      fillForm(section);
+      setDetailState('可直接修改標題、標籤、內容與排序。');
+      renderStats(currentGuideSections);
+
+      if (updateUrl) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('id', section.id);
+        window.history.replaceState({}, '', nextUrl.toString());
+      }
+    };
+
+    const filterSections = () => {
+      const keyword = (searchInput?.value || '').trim().toLowerCase();
+
+      if (!keyword) {
+        currentGuideSections = [...allGuideSections];
+        renderSections();
+        selectGuideSection(allGuideSections.find((section) => section.id === currentGuideId) || currentGuideSections[0] || null, { updateUrl: false });
+        return;
+      }
+
+      currentGuideSections = allGuideSections.filter((section) =>
+        [section.id, section.title, section.highlight, section.body, String(section.sortOrder ?? 0)]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(keyword)),
+      );
+
+      renderSections();
+      selectGuideSection(currentGuideSections.find((section) => section.id === currentGuideId) || currentGuideSections[0] || null, { updateUrl: false });
+    };
+
+    const loadSections = async () => {
+      if (!guideTableBody) return;
+
+      const response = await fetch('/api/admin/adoption-guide');
+      const data = await response.json().catch(() => ({}));
+      const sections = Array.isArray(data.results) ? data.results : [];
+
+      allGuideSections = sections;
+      currentGuideSections = [...sections];
+      renderSections();
+
+      const params = new URLSearchParams(window.location.search);
+      const selectedId = params.get('id')?.trim();
+      const selected = selectedId
+        ? sections.find((section) => section.id === selectedId) || null
+        : sections[0] || null;
+
+      selectGuideSection(selected, { updateUrl: false });
+      renderSections();
+    };
+
+    guideEditorForm?.addEventListener('input', () => {
+      if (!guideSaveButton || !guideResetButton) return;
+      const current = snapshotForm();
+      const changed = JSON.stringify(current) !== JSON.stringify(currentGuideSnapshot);
+      guideSaveButton.disabled = !changed;
+      guideResetButton.disabled = !changed;
+    });
+
+    guideEditorForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!currentGuideId || !guideSaveButton) return;
+      if (!guideEditorForm.reportValidity()) {
+        setDetailState('請先確認必填欄位都已填寫。');
+        return;
+      }
+
+      guideSaveButton.disabled = true;
+      guideSaveButton.textContent = '儲存中...';
+
+      const formData = new FormData(guideEditorForm);
+      const payload = {
+        title: String(formData.get('title') || ''),
+        highlight: String(formData.get('highlight') || ''),
+        body: String(formData.get('body') || ''),
+        sortOrder: Number(formData.get('sortOrder') || 0),
+      };
+
+      try {
+        const response = await fetch(`/api/admin/adoption-guide/${encodeURIComponent(currentGuideId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || '更新領養須知失敗');
+        }
+
+        await loadSections();
+        selectGuideSection(
+          allGuideSections.find((section) => section.id === currentGuideId) || currentGuideSections[0] || null,
+          { updateUrl: false },
+        );
+        setDetailState(result.message || '領養須知已更新。');
+      } catch (error) {
+        setDetailState(error instanceof Error ? error.message : '更新領養須知失敗，請稍後再試。');
+      } finally {
+        guideSaveButton.disabled = false;
+        guideSaveButton.textContent = '儲存變更';
+      }
+    });
+
+    guideResetButton?.addEventListener('click', () => {
+      if (!currentGuideSnapshot) return;
+      selectGuideSection(currentGuideSnapshot, { updateUrl: false });
+      setDetailState('已重設為原始內容。');
+    });
+
+    searchInput?.addEventListener('input', filterSections);
+    refreshButton?.addEventListener('click', () => {
+      searchInput.value = '';
+      loadSections().catch(() => {
+        if (guideDetailHint) guideDetailHint.textContent = '領養須知資料載入失敗，請稍後再試。';
+      });
+    });
+
+    loadSections().catch(() => {
+      if (guideTableBody) {
+        guideTableBody.innerHTML = '<tr><td colspan="4">領養須知資料載入失敗</td></tr>';
+      }
+      if (guideDetailHint) guideDetailHint.textContent = '領養須知資料載入失敗，請稍後再試。';
+    });
+  </script>
+</BaseLayout>

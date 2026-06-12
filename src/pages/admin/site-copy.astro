@@ -1,0 +1,448 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="頁面文案管理 - PawsHome"
+  description="維護首頁、申請頁與其他頁面的可調整文案。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="頁面文案管理"
+          description="把常改的頁面文字集中管理，前台首頁與申請頁會直接讀取最新內容。"
+        />
+
+        <div class="search-card fade-in is-visible admin-pets-toolbar">
+          <div>
+            <h3>內容提示</h3>
+            <p class="pet-description">
+              這裡會直接更新 D1 的頁面文案，前台讀取時會即時套用。適合調整首頁 hero、CTA 與申請頁說明。
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/">查看首頁</a>
+            <a class="btn-outline" href="/apply">查看申請頁</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="copy-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Copies</p>
+            <strong id="copies-total">-</strong>
+            <span>文案總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Pages</p>
+            <strong id="copies-pages">-</strong>
+            <span>頁面數量</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Focus</p>
+            <strong id="copies-selected">-</strong>
+            <span>目前選取</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Filter</p>
+            <strong id="copies-filter">All</strong>
+            <span>目前篩選頁面</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-pets-layout">
+          <article class="admin-panel search-card fade-in is-visible admin-pets-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Copy Directory</p>
+                <h3>頁面文案清單</h3>
+              </div>
+              <span class="admin-panel-note" id="copies-count">-</span>
+            </div>
+
+            <div class="admin-pets-search">
+              <label class="admin-search-field" for="copy-page-filter">
+                <span>頁面篩選</span>
+                <select id="copy-page-filter" class="filter-select">
+                  <option value="">全部頁面</option>
+                  <option value="home">home</option>
+                  <option value="apply">apply</option>
+                  <option value="adoption-guide">adoption-guide</option>
+                </select>
+              </label>
+              <label class="admin-search-field" for="copy-admin-search">
+                <span>搜尋文案</span>
+                <input id="copy-admin-search" type="search" placeholder="輸入頁面、標籤、文案或 ID" />
+              </label>
+              <button class="btn-outline" type="button" id="copy-admin-refresh">重新整理</button>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-pets-table">
+                <thead>
+                  <tr>
+                    <th>文案</th>
+                    <th>頁面</th>
+                    <th>排序</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="copies-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="admin-panel search-card fade-in is-visible admin-pet-detail-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Copy Editor</p>
+                <h3>頁面文案編輯</h3>
+              </div>
+              <span class="admin-panel-note" id="copy-detail-id">未選擇</span>
+            </div>
+
+            <form class="admin-pet-form" id="copy-editor-form">
+              <div class="admin-detail-pet">
+                <div class="admin-detail-pet-emoji" id="copy-detail-page">✏️</div>
+                <div>
+                  <h3 id="copy-detail-label">請從左側選擇頁面文案</h3>
+                  <p class="pet-description" id="copy-detail-value">這裡會顯示完整文案內容。</p>
+                </div>
+              </div>
+
+              <div class="admin-form-grid">
+                <label class="admin-search-field">
+                  <span>ID</span>
+                  <input id="copy-field-id" type="text" readonly />
+                </label>
+                <label class="admin-search-field">
+                  <span>頁面 Key</span>
+                  <input id="copy-field-page-key" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>欄位 Key</span>
+                  <input id="copy-field-field-key" type="text" required />
+                </label>
+                <label class="admin-search-field">
+                  <span>顯示順序</span>
+                  <input id="copy-field-sort-order" type="number" min="0" step="1" required />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>標籤</span>
+                  <input id="copy-field-label" type="text" required />
+                </label>
+              </div>
+
+              <label class="admin-search-field admin-full-width">
+                <span>文案內容</span>
+                <textarea id="copy-field-value" rows="8" required></textarea>
+              </label>
+
+              <div class="hero-actions admin-detail-actions">
+                <button class="btn-primary" type="submit" id="copy-save-button" disabled>儲存變更</button>
+                <button class="btn-outline" type="button" id="copy-reset-button" disabled>重設</button>
+              </div>
+
+              <p class="pet-description" id="copy-detail-hint">從左側列表點選文案後，這裡會載入資料。</p>
+            </form>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const copiesTotal = document.querySelector('#copies-total');
+    const copiesPages = document.querySelector('#copies-pages');
+    const copiesSelected = document.querySelector('#copies-selected');
+    const copiesFilter = document.querySelector('#copies-filter');
+    const copiesCount = document.querySelector('#copies-count');
+    const copiesTableBody = document.querySelector('#copies-table-body');
+    const pageFilter = document.querySelector('#copy-page-filter');
+    const searchInput = document.querySelector('#copy-admin-search');
+    const refreshButton = document.querySelector('#copy-admin-refresh');
+    const copyDetailId = document.querySelector('#copy-detail-id');
+    const copyDetailPage = document.querySelector('#copy-detail-page');
+    const copyDetailLabel = document.querySelector('#copy-detail-label');
+    const copyDetailValue = document.querySelector('#copy-detail-value');
+    const copyDetailHint = document.querySelector('#copy-detail-hint');
+    const copyEditorForm = document.querySelector('#copy-editor-form');
+    const copySaveButton = document.querySelector('#copy-save-button');
+    const copyResetButton = document.querySelector('#copy-reset-button');
+    const copyFieldId = document.querySelector('#copy-field-id');
+    const copyFieldPageKey = document.querySelector('#copy-field-page-key');
+    const copyFieldFieldKey = document.querySelector('#copy-field-field-key');
+    const copyFieldSortOrder = document.querySelector('#copy-field-sort-order');
+    const copyFieldLabel = document.querySelector('#copy-field-label');
+    const copyFieldValue = document.querySelector('#copy-field-value');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    let allCopies = [];
+    let currentCopies = [];
+    let currentCopyId = '';
+    let currentCopySnapshot = null;
+
+    const getFrontendPath = (pageKey) => (pageKey === 'home' ? '/' : `/${pageKey}`);
+
+    const renderRow = (copy) => `
+      <tr>
+        <td>
+          <a href="${escapeHtml(getFrontendPath(copy.pageKey))}">${escapeHtml(copy.label)}</a>
+          <div class="admin-table-subtitle">${escapeHtml(copy.fieldKey)}</div>
+          <div class="admin-table-subtitle">${escapeHtml(copy.value)}</div>
+        </td>
+        <td><span class="admin-badge default">${escapeHtml(copy.pageKey)}</span></td>
+        <td>${escapeHtml(String(copy.sortOrder ?? 0))}</td>
+        <td>
+          <div class="admin-row-actions">
+            <a class="admin-action-btn secondary" href="${escapeHtml(getFrontendPath(copy.pageKey))}">前台頁</a>
+            <a class="admin-action-btn secondary" href="/admin/site-copies?id=${encodeURIComponent(copy.id)}">查看詳情</a>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const setDetailState = (message) => {
+      if (copyDetailHint) copyDetailHint.textContent = message;
+    };
+
+    const fillForm = (copy) => {
+      if (!copy) return;
+
+      if (copyFieldId) copyFieldId.value = copy.id || '';
+      if (copyFieldPageKey) copyFieldPageKey.value = copy.pageKey || '';
+      if (copyFieldFieldKey) copyFieldFieldKey.value = copy.fieldKey || '';
+      if (copyFieldSortOrder) copyFieldSortOrder.value = String(copy.sortOrder ?? 0);
+      if (copyFieldLabel) copyFieldLabel.value = copy.label || '';
+      if (copyFieldValue) copyFieldValue.value = copy.value || '';
+      if (copySaveButton) copySaveButton.disabled = false;
+      if (copyResetButton) copyResetButton.disabled = false;
+    };
+
+    const snapshotForm = () => ({
+      id: copyFieldId?.value || '',
+      pageKey: copyFieldPageKey?.value || '',
+      fieldKey: copyFieldFieldKey?.value || '',
+      sortOrder: Number(copyFieldSortOrder?.value || 0),
+      label: copyFieldLabel?.value || '',
+      value: copyFieldValue?.value || '',
+    });
+
+    const renderStats = (copies) => {
+      const pages = new Set(copies.map((copy) => copy.pageKey).filter(Boolean));
+
+      if (copiesTotal) copiesTotal.textContent = String(copies.length);
+      if (copiesPages) copiesPages.textContent = String(pages.size);
+      if (copiesSelected) copiesSelected.textContent = currentCopyId ? '1' : '0';
+      if (copiesCount) copiesCount.textContent = `${copies.length} 筆`;
+      if (copiesFilter) copiesFilter.textContent = pageFilter?.value || 'All';
+    };
+
+    const renderCopies = () => {
+      if (!copiesTableBody) return;
+
+      if (!currentCopies.length) {
+        copiesTableBody.innerHTML = '<tr><td colspan="4">目前沒有資料</td></tr>';
+        renderStats(currentCopies);
+        return;
+      }
+
+      copiesTableBody.innerHTML = currentCopies.map(renderRow).join('');
+      renderStats(currentCopies);
+    };
+
+    const selectCopy = (copy, { updateUrl = true } = {}) => {
+      currentCopyId = copy?.id || '';
+      currentCopySnapshot = copy
+        ? {
+            id: copy.id,
+            pageKey: copy.pageKey,
+            fieldKey: copy.fieldKey,
+            sortOrder: Number(copy.sortOrder ?? 0),
+            label: copy.label,
+            value: copy.value,
+          }
+        : null;
+
+      if (!copy) {
+        if (copyDetailId) copyDetailId.textContent = '未選擇';
+        if (copyDetailPage) copyDetailPage.textContent = '✏️';
+        if (copyDetailLabel) copyDetailLabel.textContent = '請從左側選擇頁面文案';
+        if (copyDetailValue) copyDetailValue.textContent = '這裡會顯示完整文案內容。';
+        if (copyFieldId) copyFieldId.value = '';
+        if (copyFieldPageKey) copyFieldPageKey.value = '';
+        if (copyFieldFieldKey) copyFieldFieldKey.value = '';
+        if (copyFieldSortOrder) copyFieldSortOrder.value = '0';
+        if (copyFieldLabel) copyFieldLabel.value = '';
+        if (copyFieldValue) copyFieldValue.value = '';
+        if (copySaveButton) copySaveButton.disabled = true;
+        if (copyResetButton) copyResetButton.disabled = true;
+        setDetailState('從左側列表點選文案後，這裡會載入資料。');
+        renderStats(currentCopies);
+        if (updateUrl) window.history.replaceState({}, '', '/admin/site-copies');
+        return;
+      }
+
+      if (copyDetailId) copyDetailId.textContent = `文案 ID：${copy.id}`;
+      if (copyDetailPage) copyDetailPage.textContent = copy.pageKey || '✏️';
+      if (copyDetailLabel) copyDetailLabel.textContent = copy.label || '-';
+      if (copyDetailValue) copyDetailValue.textContent = copy.value || '-';
+      fillForm(copy);
+      setDetailState('可直接修改頁面、欄位 Key、標籤、內容與排序。');
+      renderStats(currentCopies);
+
+      if (updateUrl) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('id', copy.id);
+        window.history.replaceState({}, '', nextUrl.toString());
+      }
+    };
+
+    const filterCopies = () => {
+      const keyword = (searchInput?.value || '').trim().toLowerCase();
+      const pageKey = pageFilter?.value || '';
+
+      currentCopies = allCopies.filter((copy) => {
+        if (pageKey && copy.pageKey !== pageKey) return false;
+        if (!keyword) return true;
+
+        return [copy.id, copy.pageKey, copy.fieldKey, copy.label, copy.value, String(copy.sortOrder ?? 0)]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(keyword));
+      });
+
+      renderCopies();
+      selectCopy(currentCopies.find((copy) => copy.id === currentCopyId) || currentCopies[0] || null, { updateUrl: false });
+    };
+
+    const loadCopies = async () => {
+      if (!copiesTableBody) return;
+
+      const params = new URLSearchParams();
+      if (pageFilter?.value) params.set('pageKey', pageFilter.value);
+
+      const response = await fetch(`/api/admin/site-copies${params.toString() ? `?${params.toString()}` : ''}`);
+      const data = await response.json().catch(() => ({}));
+      const copies = Array.isArray(data.results) ? data.results : [];
+
+      allCopies = copies;
+      currentCopies = [...copies];
+
+      const paramsFromUrl = new URLSearchParams(window.location.search);
+      const selectedId = paramsFromUrl.get('id')?.trim();
+      currentCopyId = selectedId || currentCopyId;
+      filterCopies();
+    };
+
+    copyEditorForm?.addEventListener('input', () => {
+      if (!copySaveButton || !copyResetButton) return;
+      const current = snapshotForm();
+      const changed = JSON.stringify(current) !== JSON.stringify(currentCopySnapshot);
+      copySaveButton.disabled = !changed;
+      copyResetButton.disabled = !changed;
+    });
+
+    copyEditorForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!currentCopyId || !copySaveButton) return;
+      if (!copyEditorForm.reportValidity()) {
+        setDetailState('請先確認必填欄位都已填寫。');
+        return;
+      }
+
+      copySaveButton.disabled = true;
+      copySaveButton.textContent = '儲存中...';
+
+      const formData = new FormData(copyEditorForm);
+      const payload = {
+        pageKey: String(formData.get('pageKey') || ''),
+        fieldKey: String(formData.get('fieldKey') || ''),
+        label: String(formData.get('label') || ''),
+        value: String(formData.get('value') || ''),
+        sortOrder: Number(formData.get('sortOrder') || 0),
+      };
+
+      try {
+        const response = await fetch(`/api/admin/site-copies/${encodeURIComponent(currentCopyId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || '更新頁面文案失敗');
+        }
+
+        await loadCopies();
+        selectCopy(
+          allCopies.find((copy) => copy.id === currentCopyId) || currentCopies[0] || null,
+          { updateUrl: false },
+        );
+        setDetailState(result.message || '頁面文案已更新。');
+      } catch (error) {
+        setDetailState(error instanceof Error ? error.message : '更新頁面文案失敗，請稍後再試。');
+      } finally {
+        copySaveButton.disabled = false;
+        copySaveButton.textContent = '儲存變更';
+      }
+    });
+
+    copyResetButton?.addEventListener('click', () => {
+      if (!currentCopySnapshot) return;
+      selectCopy(currentCopySnapshot, { updateUrl: false });
+      setDetailState('已重設為原始內容。');
+    });
+
+    pageFilter?.addEventListener('change', () => {
+      loadCopies().catch(() => {
+        if (copyDetailHint) copyDetailHint.textContent = '頁面文案資料載入失敗，請稍後再試。';
+      });
+    });
+
+    searchInput?.addEventListener('input', filterCopies);
+    refreshButton?.addEventListener('click', () => {
+      searchInput.value = '';
+      loadCopies().catch(() => {
+        if (copyDetailHint) copyDetailHint.textContent = '頁面文案資料載入失敗，請稍後再試。';
+      });
+    });
+
+    loadCopies().catch(() => {
+      if (copiesTableBody) {
+        copiesTableBody.innerHTML = '<tr><td colspan="4">頁面文案資料載入失敗</td></tr>';
+      }
+      if (copyDetailHint) copyDetailHint.textContent = '頁面文案資料載入失敗，請稍後再試。';
+    });
+  </script>
+</BaseLayout>

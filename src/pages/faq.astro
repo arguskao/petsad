@@ -1,0 +1,69 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import { faqs } from '../data/faqs';
+---
+
+<BaseLayout title="常見問題 - PawsHome" description="整理領養前後最常見的問題，幫助你安心開始領養流程。">
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="FAQ"
+          title="常見問題"
+          description="從領養資格、費用到後續照護，先把最常被問到的事情整理在這裡。"
+        />
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="faq-list" id="faq-list" aria-live="polite">
+          {faqs.map((faq) => (
+            <article class="search-card fade-in is-visible faq-item" id={faq.id}>
+              <p class="section-eyebrow">{faq.category}</p>
+              <h3>{faq.question}</h3>
+              <p class="pet-description">{faq.answer}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const faqList = document.querySelector('#faq-list');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const renderFaq = (faq) => `
+      <article class="search-card fade-in is-visible faq-item" id="${escapeHtml(faq.id)}">
+        <p class="section-eyebrow">${escapeHtml(faq.category)}</p>
+        <h3>${escapeHtml(faq.question)}</h3>
+        <p class="pet-description">${escapeHtml(faq.answer)}</p>
+      </article>
+    `;
+
+    fetch('/api/faqs')
+      .then((response) => response.json())
+      .then((data) => {
+        const faqs = Array.isArray(data.results) ? data.results : [];
+        if (faqList && faqs.length) {
+          faqList.innerHTML = faqs.map(renderFaq).join('');
+        }
+      })
+      .catch(() => {});
+  </script>
+</BaseLayout>

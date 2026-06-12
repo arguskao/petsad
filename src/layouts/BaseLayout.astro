@@ -335,6 +335,156 @@ const {
         showNotification,
       };
 
+      const analyticsStorageKey = 'paws-analytics-session-id';
+      const getAnalyticsSessionId = () => {
+        const existing = window.localStorage.getItem(analyticsStorageKey);
+        if (existing) return existing;
+
+        const nextId = crypto.randomUUID();
+        window.localStorage.setItem(analyticsStorageKey, nextId);
+        return nextId;
+      };
+
+      const escapeSelector = (value) => {
+        if (window.CSS && typeof window.CSS.escape === 'function') {
+          return window.CSS.escape(value);
+        }
+
+        return String(value).replaceAll('"', '\\"');
+      };
+
+      const sendAnalyticsEvent = async (payload) => {
+        const analyticsUrl = apiBaseUrl ? `${apiBaseUrl}/api/analytics/events` : '/api/analytics/events';
+        const body = JSON.stringify({
+          sessionId: getAnalyticsSessionId(),
+          ...payload,
+        });
+
+        if (navigator.sendBeacon) {
+          const sent = navigator.sendBeacon(analyticsUrl, new Blob([body], { type: 'application/json' }));
+          if (sent) return true;
+        }
+
+        const response = await fetch(analyticsUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body,
+          keepalive: true,
+        });
+
+        return response.ok;
+      };
+
+      const trackAnalyticsEvent = (eventType, payload = {}) => {
+        void sendAnalyticsEvent({
+          eventType,
+          pagePath: window.location.pathname,
+          ...payload,
+        }).catch(() => {});
+      };
+
+      const applyPageCopies = (copies) => {
+        if (!Array.isArray(copies)) return;
+
+        copies.forEach((copy) => {
+          if (!copy || typeof copy.fieldKey !== 'string' || typeof copy.value !== 'string') return;
+
+          const selector = `[data-copy-key="${escapeSelector(copy.fieldKey)}"]`;
+          document.querySelectorAll(selector).forEach((node) => {
+            node.textContent = copy.value;
+          });
+        });
+      };
+
+      const loadPageCopies = async (pageKey) => {
+        if (!pageKey) return [];
+
+        const response = await fetch(`/api/site-copies?pageKey=${encodeURIComponent(pageKey)}`);
+        const data = await response.json().catch(() => ({}));
+        const copies = Array.isArray(data.results) ? data.results : [];
+
+        if (copies.length) {
+          applyPageCopies(copies);
+        }
+
+        return copies;
+      };
+
+      window.PawsHomeContent = {
+        applyPageCopies,
+        loadPageCopies,
+      };
+
+      window.PawsHomeAnalytics = {
+        track: trackAnalyticsEvent,
+        pageView: (extra = {}) => trackAnalyticsEvent('page_view', extra),
+      };
+
+      const currentPagePath = window.location.pathname;
+      const currentPageTitle = document.title;
+      window.requestAnimationFrame(() => {
+        trackAnalyticsEvent('page_view', {
+          source: currentPageTitle,
+          detail: {
+            title: currentPageTitle,
+            referrer: document.referrer || '',
+          },
+        });
+      });
+
+      window.addEventListener('error', (event) => {
+        if (event.error instanceof Error) {
+          trackAnalyticsEvent('error', {
+            status: 'js-error',
+            source: 'window-error',
+            detail: {
+              message: event.error.message,
+              stack: event.error.stack || '',
+              pagePath: currentPagePath,
+            },
+          });
+          return;
+        }
+
+        if (typeof event.message === 'string' && event.message.trim()) {
+          trackAnalyticsEvent('error', {
+            status: 'js-error',
+            source: 'window-error',
+            detail: {
+              message: event.message,
+              pagePath: currentPagePath,
+            },
+          });
+        }
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason;
+        if (reason instanceof Error) {
+          trackAnalyticsEvent('error', {
+            status: 'unhandledrejection',
+            source: 'window-rejection',
+            detail: {
+              message: reason.message,
+              stack: reason.stack || '',
+              pagePath: currentPagePath,
+            },
+          });
+          return;
+        }
+
+        trackAnalyticsEvent('error', {
+          status: 'unhandledrejection',
+          source: 'window-rejection',
+          detail: {
+            message: typeof reason === 'string' ? reason : 'Unhandled promise rejection',
+            pagePath: currentPagePath,
+          },
+        });
+      });
+
       void bootstrapFavoriteState();
 
       document.querySelectorAll('a[href^="#"]').forEach((anchor) => {

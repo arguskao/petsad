@@ -18,19 +18,31 @@ import { assertRegistrationEmailConfig, sendRegistrationEmail } from '../../src/
 import { createMember, createMemberSession, getMemberByEmail, getMemberById, getSessionMember, revokeSession, updateMemberPassword } from '../../src/lib/members-db';
 import { createPetApiPayload, findPetById } from '../../src/lib/pets';
 import { getFavoritePetIdsFromDatabase, getFavoritesFromDatabase } from '../../src/lib/favorites-db';
-import { getSheltersFromDatabase as getContentSheltersFromDatabase, getStoriesFromDatabase } from '../../src/lib/content-db';
+import {
+  getAdoptionGuideSectionByIdFromDatabase,
+  getAdoptionGuideSectionsFromDatabase,
+  getFaqsFromDatabase,
+  getPageCopyByIdFromDatabase,
+  getPageCopiesFromDatabase,
+  getSheltersFromDatabase as getContentSheltersFromDatabase,
+  getStoriesFromDatabase,
+  updateAdoptionGuideSectionInDatabase,
+  updatePageCopyInDatabase,
+} from '../../src/lib/content-db';
 import { getShelterByIdFromDatabase, updateShelterInDatabase } from '../../src/lib/shelters-db';
 import { getPetByIdFromDatabase, getPetsFromDatabase } from '../../src/lib/paws-db';
 
 type ApiEnv = {
   paws?: D1Database;
   ASSETS?: Fetcher;
-  PET_IMAGES?: R2Bucket;
+  paws_pet_images?: R2Bucket;
   MAIL_FROM_ADDRESS?: string;
   MAIL_FROM_NAME?: string;
   MAILCHANNELS_API_KEY?: string;
   MAILCHANNELS_ENDPOINT?: string;
 };
+
+type AnalyticsDetail = Record<string, unknown>;
 
 const parseLimit = (value: string | null | undefined, fallback = 10, max = 20) => {
   const parsed = Number(value);
@@ -90,6 +102,19 @@ const normalizeOptionalUrl = (value: unknown) => {
   if (!/^(https?:\/\/|\/)/i.test(trimmed)) return '';
   return trimmed;
 };
+
+const parseAnalyticsDetail = (value: string | null | undefined) => {
+  if (!value) return {};
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const stringifyAnalyticsDetail = (value: AnalyticsDetail) => JSON.stringify(value);
 
 const petImageContentTypes = new Map([
   ['image/jpeg', 'jpg'],
@@ -186,9 +211,13 @@ app.get('/', (c) =>
       'GET /api/pets',
       'GET /api/pets/:id',
       'GET /api/stories',
+      'GET /api/faqs',
       'GET /api/shelters',
+      'GET /api/adoption-guide',
+      'GET /api/site-copies',
       'GET /api/favorites',
       'POST /api/favorites/merge',
+      'POST /api/analytics/events',
       'GET /api/admin/summary',
       'GET /api/admin/adoptions',
       'GET /api/admin/adoptions/:id',
@@ -200,6 +229,16 @@ app.get('/', (c) =>
       'GET /api/admin/stories',
       'GET /api/admin/stories/:id',
       'PATCH /api/admin/stories/:id',
+      'GET /api/admin/faqs',
+      'GET /api/admin/faqs/:id',
+      'PATCH /api/admin/faqs/:id',
+      'GET /api/admin/adoption-guide',
+      'GET /api/admin/adoption-guide/:id',
+      'PATCH /api/admin/adoption-guide/:id',
+      'GET /api/admin/site-copies',
+      'GET /api/admin/site-copies/:id',
+      'PATCH /api/admin/site-copies/:id',
+      'GET /api/admin/analytics',
       'GET /api/admin/shelters',
       'PATCH /api/admin/shelters/:id',
       'GET /api/admin/favorites',
@@ -500,12 +539,86 @@ app.get('/stories', async (c) => {
   });
 });
 
+app.get('/faqs', async (c) => {
+  const faqs = await getFaqsFromDatabase(c.env.paws);
+  return c.json({
+    total: faqs.length,
+    results: faqs,
+  });
+});
+
 app.get('/shelters', async (c) => {
   const shelters = await getContentSheltersFromDatabase(c.env.paws);
   return c.json({
     total: shelters.length,
     results: shelters,
   });
+});
+
+app.get('/adoption-guide', async (c) => {
+  const sections = await getAdoptionGuideSectionsFromDatabase(c.env.paws);
+
+  return c.json({
+    total: sections.length,
+    results: sections,
+  });
+});
+
+app.get('/site-copies', async (c) => {
+  const pageKey = c.req.query('pageKey')?.trim() || '';
+  const copies = await getPageCopiesFromDatabase(c.env.paws, pageKey || undefined);
+
+  return c.json({
+    total: copies.length,
+    results: copies,
+  });
+});
+
+app.post('/analytics/events', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const eventType = typeof body?.eventType === 'string' ? body.eventType.trim() : '';
+  const pagePath = typeof body?.pagePath === 'string' ? body.pagePath.trim() : '';
+  const status = typeof body?.status === 'string' ? body.status.trim() : '';
+  const source = typeof body?.source === 'string' ? body.source.trim() : '';
+  const detail = body?.detail && typeof body.detail === 'object' ? (body.detail as AnalyticsDetail) : {};
+
+  if (!eventType || !pagePath) {
+    return c.json({ ok: false, message: 'eventType 與 pagePath 為必填欄位。' }, 400);
+  }
+
+  await db
+    .prepare(
+      `
+      INSERT INTO analytics_events (
+        id,
+        event_type,
+        page_path,
+        status,
+        source,
+        detail_json
+      ) VALUES (?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      crypto.randomUUID(),
+      eventType,
+      pagePath,
+      status || null,
+      source || null,
+      stringifyAnalyticsDetail(detail),
+    )
+    .run();
+
+  return c.json({
+    ok: true,
+    message: '事件已記錄。',
+  }, 201);
 });
 
 app.get('/favorites', async (c) => {
@@ -609,6 +722,7 @@ app.get('/admin/summary', async (c) => {
       SELECT
         (SELECT COUNT(*) FROM pets) AS total_pets,
         (SELECT COUNT(*) FROM stories) AS total_stories,
+        (SELECT COUNT(*) FROM faqs) AS total_faqs,
         (SELECT COUNT(*) FROM shelters) AS total_shelters,
         (SELECT COUNT(*) FROM adoption_requests) AS total_adoptions,
         (SELECT COUNT(*) FROM adoption_requests WHERE status = 'pending') AS pending_adoptions,
@@ -619,6 +733,7 @@ app.get('/admin/summary', async (c) => {
     .first<{
       total_pets: number;
       total_stories: number;
+      total_faqs: number;
       total_shelters: number;
       total_adoptions: number;
       pending_adoptions: number;
@@ -631,6 +746,7 @@ app.get('/admin/summary', async (c) => {
     summary: {
       totalPets: summary?.total_pets ?? 0,
       totalStories: summary?.total_stories ?? 0,
+      totalFaqs: summary?.total_faqs ?? 0,
       totalShelters: summary?.total_shelters ?? 0,
       totalAdoptions: summary?.total_adoptions ?? 0,
       pendingAdoptions: summary?.pending_adoptions ?? 0,
@@ -806,6 +922,465 @@ app.patch('/admin/stories/:id', async (c) => {
       emoji,
       sortOrder: Math.floor(sortOrder),
     },
+  });
+});
+
+app.get('/admin/faqs', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const faqs = await getFaqsFromDatabase(db);
+
+  return c.json({
+    ok: true,
+    total: faqs.length,
+    results: faqs,
+  });
+});
+
+app.get('/admin/faqs/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+
+  if (!id) {
+    return c.json({ ok: false, message: 'FAQ ID 為必填欄位。' }, 400);
+  }
+
+  const faq = await db
+    .prepare(
+      `
+      SELECT
+        id,
+        category,
+        question,
+        answer,
+        sort_order
+      FROM faqs
+      WHERE id = ?
+      LIMIT 1
+      `,
+    )
+    .bind(id)
+    .first<{
+      id: string;
+      category: string;
+      question: string;
+      answer: string;
+      sort_order: number;
+    }>();
+
+  if (!faq) {
+    return c.json({ ok: false, message: '找不到指定的 FAQ。' }, 404);
+  }
+
+  return c.json({
+    ok: true,
+    faq: {
+      id: faq.id,
+      category: faq.category,
+      question: faq.question,
+      answer: faq.answer,
+      sortOrder: faq.sort_order,
+    },
+  });
+});
+
+app.patch('/admin/faqs/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+  const body = await c.req.json().catch(() => null);
+
+  const category = typeof body?.category === 'string' ? body.category.trim() : '';
+  const question = typeof body?.question === 'string' ? body.question.trim() : '';
+  const answer = typeof body?.answer === 'string' ? body.answer.trim() : '';
+  const sortOrder = Number(body?.sortOrder);
+
+  if (!id) {
+    return c.json({ ok: false, message: 'FAQ ID 為必填欄位。' }, 400);
+  }
+
+  if (!category || !question || !answer || !Number.isFinite(sortOrder)) {
+    return c.json({ ok: false, message: '請確認 FAQ 欄位皆已填寫。' }, 400);
+  }
+
+  const existing = await db
+    .prepare(
+      `
+      SELECT id
+      FROM faqs
+      WHERE id = ?
+      LIMIT 1
+      `,
+    )
+    .bind(id)
+    .first<{ id: string }>();
+
+  if (!existing) {
+    return c.json({ ok: false, message: '找不到指定的 FAQ。' }, 404);
+  }
+
+  await db
+    .prepare(
+      `
+      UPDATE faqs
+      SET
+        category = ?,
+        question = ?,
+        answer = ?,
+        sort_order = ?
+      WHERE id = ?
+      `,
+    )
+    .bind(category, question, answer, Math.floor(sortOrder), id)
+    .run();
+
+  return c.json({
+    ok: true,
+    message: 'FAQ 已更新。',
+    faq: {
+      id,
+      category,
+      question,
+      answer,
+      sortOrder: Math.floor(sortOrder),
+    },
+  });
+});
+
+app.get('/admin/adoption-guide', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const sections = await getAdoptionGuideSectionsFromDatabase(db);
+
+  return c.json({
+    ok: true,
+    total: sections.length,
+    results: sections,
+  });
+});
+
+app.get('/admin/adoption-guide/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+
+  if (!id) {
+    return c.json({ ok: false, message: '領養須知 ID 為必填欄位。' }, 400);
+  }
+
+  const section = await getAdoptionGuideSectionByIdFromDatabase(db, id);
+
+  if (!section) {
+    return c.json({ ok: false, message: '找不到指定的領養須知。' }, 404);
+  }
+
+  return c.json({
+    ok: true,
+    section: {
+      id: section.id,
+      title: section.title,
+      highlight: section.highlight,
+      body: section.body,
+      sortOrder: section.sortOrder ?? 0,
+    },
+  });
+});
+
+app.patch('/admin/adoption-guide/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+  const body = await c.req.json().catch(() => null);
+  const title = typeof body?.title === 'string' ? body.title.trim() : '';
+  const highlight = typeof body?.highlight === 'string' ? body.highlight.trim() : '';
+  const text = typeof body?.body === 'string' ? body.body.trim() : '';
+  const sortOrder = Number(body?.sortOrder);
+
+  if (!id) {
+    return c.json({ ok: false, message: '領養須知 ID 為必填欄位。' }, 400);
+  }
+
+  if (!title || !highlight || !text || !Number.isFinite(sortOrder)) {
+    return c.json({ ok: false, message: '請確認領養須知欄位皆已填寫。' }, 400);
+  }
+
+  const existing = await getAdoptionGuideSectionByIdFromDatabase(db, id);
+  if (!existing) {
+    return c.json({ ok: false, message: '找不到指定的領養須知。' }, 404);
+  }
+
+  const updated = await updateAdoptionGuideSectionInDatabase(db, {
+    id,
+    title,
+    highlight,
+    body: text,
+    sortOrder,
+  });
+
+  return c.json({
+    ok: true,
+    message: '領養須知已更新。',
+    section: updated,
+  });
+});
+
+app.get('/admin/site-copies', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const pageKey = c.req.query('pageKey')?.trim() || '';
+  const copies = await getPageCopiesFromDatabase(db, pageKey || undefined);
+
+  return c.json({
+    ok: true,
+    total: copies.length,
+    results: copies,
+  });
+});
+
+app.get('/admin/site-copies/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+
+  if (!id) {
+    return c.json({ ok: false, message: '頁面文案 ID 為必填欄位。' }, 400);
+  }
+
+  const copy = await getPageCopyByIdFromDatabase(db, id);
+
+  if (!copy) {
+    return c.json({ ok: false, message: '找不到指定的頁面文案。' }, 404);
+  }
+
+  return c.json({
+    ok: true,
+    copy: {
+      id: copy.id,
+      pageKey: copy.pageKey,
+      fieldKey: copy.fieldKey,
+      label: copy.label,
+      value: copy.value,
+      sortOrder: copy.sortOrder ?? 0,
+    },
+  });
+});
+
+app.patch('/admin/site-copies/:id', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const id = c.req.param('id').trim();
+  const body = await c.req.json().catch(() => null);
+  const pageKey = typeof body?.pageKey === 'string' ? body.pageKey.trim() : '';
+  const fieldKey = typeof body?.fieldKey === 'string' ? body.fieldKey.trim() : '';
+  const label = typeof body?.label === 'string' ? body.label.trim() : '';
+  const value = typeof body?.value === 'string' ? body.value.trim() : '';
+  const sortOrder = Number(body?.sortOrder);
+
+  if (!id) {
+    return c.json({ ok: false, message: '頁面文案 ID 為必填欄位。' }, 400);
+  }
+
+  if (!pageKey || !fieldKey || !label || !value || !Number.isFinite(sortOrder)) {
+    return c.json({ ok: false, message: '請確認頁面文案欄位皆已填寫。' }, 400);
+  }
+
+  const existing = await getPageCopyByIdFromDatabase(db, id);
+  if (!existing) {
+    return c.json({ ok: false, message: '找不到指定的頁面文案。' }, 404);
+  }
+
+  const updated = await updatePageCopyInDatabase(db, {
+    id,
+    pageKey,
+    fieldKey,
+    label,
+    value,
+    sortOrder,
+  });
+
+  return c.json({
+    ok: true,
+    message: '頁面文案已更新。',
+    copy: updated,
+  });
+});
+
+app.get('/admin/analytics', async (c) => {
+  const db = c.env.paws;
+
+  if (!db) {
+    return c.json({ ok: false, message: 'D1 binding paws is not available.' }, 503);
+  }
+
+  const summary = await db
+    .prepare(
+      `
+      SELECT
+        COUNT(*) AS total_events,
+        SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views,
+        SUM(CASE WHEN event_type = 'error' THEN 1 ELSE 0 END) AS error_events,
+        SUM(CASE WHEN event_type = 'form_submit' AND source = 'adoption' AND status = 'started' THEN 1 ELSE 0 END) AS adoption_form_starts,
+        SUM(CASE WHEN event_type = 'form_submit' AND source = 'adoption' AND status = 'success' THEN 1 ELSE 0 END) AS adoption_form_successes,
+        SUM(CASE WHEN event_type = 'form_submit' AND source = 'adoption' AND status = 'error' THEN 1 ELSE 0 END) AS adoption_form_failures
+      FROM analytics_events
+      `,
+    )
+    .first<{
+      total_events: number;
+      page_views: number;
+      error_events: number;
+      adoption_form_starts: number;
+      adoption_form_successes: number;
+      adoption_form_failures: number;
+    }>();
+
+  const topPages = await db
+    .prepare(
+      `
+      SELECT
+        page_path,
+        COUNT(*) AS views
+      FROM analytics_events
+      WHERE event_type = 'page_view'
+      GROUP BY page_path
+      ORDER BY views DESC, page_path ASC
+      LIMIT 8
+      `,
+    )
+    .all<{
+      page_path: string;
+      views: number;
+    }>();
+
+  const recentErrors = await db
+    .prepare(
+      `
+      SELECT
+        id,
+        page_path,
+        status,
+        source,
+        detail_json,
+        created_at
+      FROM analytics_events
+      WHERE event_type = 'error'
+      ORDER BY created_at DESC
+      LIMIT 8
+      `,
+    )
+    .all<{
+      id: string;
+      page_path: string;
+      status: string | null;
+      source: string | null;
+      detail_json: string | null;
+      created_at: string;
+    }>();
+
+  const recentFormEvents = await db
+    .prepare(
+      `
+      SELECT
+        id,
+        page_path,
+        status,
+        source,
+        detail_json,
+        created_at
+      FROM analytics_events
+      WHERE event_type = 'form_submit'
+      ORDER BY created_at DESC
+      LIMIT 8
+      `,
+    )
+    .all<{
+      id: string;
+      page_path: string;
+      status: string | null;
+      source: string | null;
+      detail_json: string | null;
+      created_at: string;
+    }>();
+
+  const started = Number(summary?.adoption_form_starts ?? 0);
+  const successes = Number(summary?.adoption_form_successes ?? 0);
+  const successRate = started > 0 ? Math.round((successes / started) * 1000) / 10 : 0;
+
+  return c.json({
+    ok: true,
+    summary: {
+      totalEvents: Number(summary?.total_events ?? 0),
+      pageViews: Number(summary?.page_views ?? 0),
+      errorEvents: Number(summary?.error_events ?? 0),
+      adoptionFormStarts: started,
+      adoptionFormSuccesses: successes,
+      adoptionFormFailures: Number(summary?.adoption_form_failures ?? 0),
+      adoptionFormSuccessRate: successRate,
+    },
+    topPages: topPages.results.map((row) => ({
+      pagePath: row.page_path,
+      views: Number(row.views ?? 0),
+    })),
+    recentErrors: recentErrors.results.map((row) => {
+      const detail = parseAnalyticsDetail(row.detail_json);
+      return {
+        id: row.id,
+        pagePath: row.page_path,
+        status: row.status || '',
+        source: row.source || '',
+        message: typeof detail.message === 'string' ? detail.message : '',
+        stack: typeof detail.stack === 'string' ? detail.stack : '',
+        createdAt: row.created_at,
+      };
+    }),
+    recentFormEvents: recentFormEvents.results.map((row) => {
+      const detail = parseAnalyticsDetail(row.detail_json);
+      return {
+        id: row.id,
+        pagePath: row.page_path,
+        status: row.status || '',
+        source: row.source || '',
+        message: typeof detail.message === 'string' ? detail.message : '',
+        createdAt: row.created_at,
+      };
+    }),
   });
 });
 
@@ -1191,10 +1766,10 @@ app.post('/admin/pets', async (c) => {
 });
 
 app.post('/admin/pet-images', async (c) => {
-  const bucket = c.env.PET_IMAGES;
+  const bucket = c.env.paws_pet_images;
 
   if (!bucket) {
-    return c.json({ ok: false, message: 'R2 binding PET_IMAGES is not available.' }, 503);
+    return c.json({ ok: false, message: 'R2 binding paws_pet_images is not available.' }, 503);
   }
 
   const formData = await c.req.formData().catch(() => null);
@@ -1236,10 +1811,10 @@ app.post('/admin/pet-images', async (c) => {
 });
 
 app.get('/pet-images/:key', async (c) => {
-  const bucket = c.env.PET_IMAGES;
+  const bucket = c.env.paws_pet_images;
 
   if (!bucket) {
-    return c.json({ ok: false, message: 'R2 binding PET_IMAGES is not available.' }, 503);
+    return c.json({ ok: false, message: 'R2 binding paws_pet_images is not available.' }, 503);
   }
 
   const key = c.req.param('key').trim();

@@ -19,22 +19,22 @@ import { stories } from '../data/stories';
         <div class="hero-content">
           <div class="hero-badge fade-in is-visible">
             <span class="badge-icon">🐾</span>
-            <span>已有 12,847 隻毛孩找到新家</span>
+            <span data-copy-key="home-hero-badge">已有 12,847 隻毛孩找到新家</span>
           </div>
 
           <h1 class="hero-title fade-in is-visible">
-            給牠們一個<br />
-            <span class="highlight">溫暖的家</span>
+            <span data-copy-key="home-hero-title-line1">給牠們一個</span><br />
+            <span class="highlight" data-copy-key="home-hero-title-highlight">溫暖的家</span>
           </h1>
 
-          <p class="hero-description fade-in is-visible">
+          <p class="hero-description fade-in is-visible" data-copy-key="home-hero-description">
             每一隻毛孩都值得被愛。在這裡，你可以找到最適合你的毛孩夥伴，
             一起創造美好的回憶。
           </p>
 
           <div class="hero-actions fade-in is-visible">
-            <a class="btn-primary large" href="/pets">開始尋找毛孩</a>
-            <a class="btn-outline large" href="/apply">我想提供中途</a>
+            <a class="btn-primary large" href="/pets" data-copy-key="home-hero-primary-cta">開始尋找毛孩</a>
+            <a class="btn-outline large" href="/apply" data-copy-key="home-hero-secondary-cta">我想提供中途</a>
           </div>
 
           <p class="favorite-prompt fade-in is-visible">
@@ -89,6 +89,9 @@ import { stories } from '../data/stories';
           eyebrow="Featured Pets"
           title="等待愛的毛孩們"
           description="每一隻都有獨特的故事，等待與你相遇"
+          eyebrowCopyKey="home-featured-pets-eyebrow"
+          titleCopyKey="home-featured-pets-title"
+          descriptionCopyKey="home-featured-pets-description"
         />
 
         <div class="pets-grid">
@@ -107,6 +110,9 @@ import { stories } from '../data/stories';
           eyebrow="How It Works"
           title="簡單四步驟，開始領養"
           description="我們讓領養過程變得簡單又安心"
+          eyebrowCopyKey="home-how-it-works-eyebrow"
+          titleCopyKey="home-how-it-works-title"
+          descriptionCopyKey="home-how-it-works-description"
         />
 
         <div class="steps-grid">
@@ -147,6 +153,9 @@ import { stories } from '../data/stories';
           eyebrow="Stories"
           title="溫馨的相遇故事"
           description="看看這些幸福的家庭如何與毛孩相遇"
+          eyebrowCopyKey="home-stories-eyebrow"
+          titleCopyKey="home-stories-title"
+          descriptionCopyKey="home-stories-description"
         />
 
         <div class="stories-grid" id="home-stories-grid" aria-live="polite">
@@ -161,6 +170,9 @@ import { stories } from '../data/stories';
           eyebrow="Partners"
           title="我們的合作夥伴"
           description="與全台收容所和中途之家合作，資料會從 D1 同步讀取。"
+          eyebrowCopyKey="home-shelters-eyebrow"
+          titleCopyKey="home-shelters-title"
+          descriptionCopyKey="home-shelters-description"
         />
 
         <div class="search-card fade-in is-visible">
@@ -179,14 +191,14 @@ import { stories } from '../data/stories';
       <div class="container">
         <div class="cta-content fade-in is-visible">
           <div class="cta-icon">🐾</div>
-          <h2>準備好迎接新家人了嗎？</h2>
-          <p>現在就開始尋找你的毛孩夥伴，給牠一個充滿愛的家</p>
+          <h2 data-copy-key="home-cta-title">準備好迎接新家人了嗎？</h2>
+          <p data-copy-key="home-cta-description">現在就開始尋找你的毛孩夥伴，給牠一個充滿愛的家</p>
           <div class="cta-actions">
-            <a class="btn-primary large" href="/pets">開始領養旅程</a>
-            <a class="btn-outline large white" href="/#how-it-works">了解更多資訊</a>
+            <a class="btn-primary large" href="/pets" data-copy-key="home-cta-primary-button">開始領養旅程</a>
+            <a class="btn-outline large white" href="/#how-it-works" data-copy-key="home-cta-secondary-button">了解更多資訊</a>
           </div>
           <div class="cta-note">
-            <p>💡 領養前建議：請確保你已準備好照顧毛孩一輩子的責任與承諾</p>
+            <p data-copy-key="home-cta-note">💡 領養前建議：請確保你已準備好照顧毛孩一輩子的責任與承諾</p>
           </div>
         </div>
       </div>
@@ -279,5 +291,15 @@ import { stories } from '../data/stories';
     loadHomeShelters().catch(() => {
       if (sheltersMeta) sheltersMeta.textContent = '合作夥伴資料載入失敗，請稍後再試。';
     });
+
+    const bootstrapHomeCopies = () => {
+      window.PawsHomeContent?.loadPageCopies('home').catch(() => {});
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrapHomeCopies, { once: true });
+    } else {
+      bootstrapHomeCopies();
+    }
   </script>
 </BaseLayout>

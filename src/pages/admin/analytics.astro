@@ -1,0 +1,286 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="監控與分析 - PawsHome"
+  description="查看頁面使用、錯誤追蹤與領養申請成功率。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="監控與分析"
+          description="先把最重要的使用指標、錯誤資訊與申請成功率整理出來，方便上線後觀察狀況。"
+        />
+
+        <div class="search-card fade-in is-visible admin-pets-toolbar">
+          <div>
+            <h3>監控提示</h3>
+            <p class="pet-description">
+              這裡會從 D1 的事件紀錄匯總使用分析。只要前台頁面有 page view、錯誤或表單事件，就會出現在這裡。
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/">查看首頁</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="analytics-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Views</p>
+            <strong id="analytics-page-views">-</strong>
+            <span>頁面瀏覽數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Errors</p>
+            <strong id="analytics-errors">-</strong>
+            <span>錯誤事件</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Adoption</p>
+            <strong id="analytics-adoption-success-rate">-</strong>
+            <span>申請成功率</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Forms</p>
+            <strong id="analytics-form-starts">-</strong>
+            <span>申請開始次數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Success</p>
+            <strong id="analytics-form-successes">-</strong>
+            <span>申請成功次數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Failures</p>
+            <strong id="analytics-form-failures">-</strong>
+            <span>申請失敗次數</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-grid">
+          <article class="admin-panel search-card fade-in is-visible">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Traffic</p>
+                <h3>頁面使用排行</h3>
+              </div>
+              <span class="admin-panel-note" id="analytics-top-pages-count">-</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>頁面</th>
+                    <th>瀏覽數</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-top-pages-body">
+                  <tr><td colspan="2">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="admin-panel search-card fade-in is-visible">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">Errors</p>
+                <h3>最近錯誤</h3>
+              </div>
+              <span class="admin-panel-note" id="analytics-errors-count">-</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>時間</th>
+                    <th>來源 / 頁面</th>
+                    <th>訊息</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-errors-body">
+                  <tr><td colspan="3">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <article class="admin-panel search-card fade-in is-visible">
+          <div class="admin-panel-header">
+            <div>
+              <p class="section-eyebrow">Forms</p>
+              <h3>最近表單事件</h3>
+            </div>
+            <span class="admin-panel-note" id="analytics-forms-count">-</span>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>時間</th>
+                  <th>頁面</th>
+                  <th>狀態</th>
+                  <th>內容</th>
+                </tr>
+              </thead>
+              <tbody id="analytics-forms-body">
+                <tr><td colspan="4">載入中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const stats = {
+      pageViews: document.querySelector('#analytics-page-views'),
+      errors: document.querySelector('#analytics-errors'),
+      adoptionSuccessRate: document.querySelector('#analytics-adoption-success-rate'),
+      formStarts: document.querySelector('#analytics-form-starts'),
+      formSuccesses: document.querySelector('#analytics-form-successes'),
+      formFailures: document.querySelector('#analytics-form-failures'),
+    };
+
+    const topPagesBody = document.querySelector('#analytics-top-pages-body');
+    const errorsBody = document.querySelector('#analytics-errors-body');
+    const formsBody = document.querySelector('#analytics-forms-body');
+    const topPagesCount = document.querySelector('#analytics-top-pages-count');
+    const errorsCount = document.querySelector('#analytics-errors-count');
+    const formsCount = document.querySelector('#analytics-forms-count');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const formatDate = (value) => {
+      if (!value) return '-';
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+
+      return new Intl.DateTimeFormat('zh-TW', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date);
+    };
+
+    const renderStatus = (status) => {
+      if (!status) return '<span class="admin-badge default">-</span>';
+      return `<span class="admin-badge default">${escapeHtml(status)}</span>`;
+    };
+
+    const loadAnalytics = async () => {
+      const response = await fetch('/api/admin/analytics');
+      const data = await response.json().catch(() => ({}));
+      const summary = data.summary || {};
+      const topPages = Array.isArray(data.topPages) ? data.topPages : [];
+      const recentErrors = Array.isArray(data.recentErrors) ? data.recentErrors : [];
+      const recentFormEvents = Array.isArray(data.recentFormEvents) ? data.recentFormEvents : [];
+
+      if (stats.pageViews) stats.pageViews.textContent = String(summary.pageViews ?? 0);
+      if (stats.errors) stats.errors.textContent = String(summary.errorEvents ?? 0);
+      if (stats.adoptionSuccessRate) stats.adoptionSuccessRate.textContent = `${Number(summary.adoptionFormSuccessRate ?? 0).toFixed(1)}%`;
+      if (stats.formStarts) stats.formStarts.textContent = String(summary.adoptionFormStarts ?? 0);
+      if (stats.formSuccesses) stats.formSuccesses.textContent = String(summary.adoptionFormSuccesses ?? 0);
+      if (stats.formFailures) stats.formFailures.textContent = String(summary.adoptionFormFailures ?? 0);
+
+      if (topPagesCount) topPagesCount.textContent = `${topPages.length} 筆`;
+      if (errorsCount) errorsCount.textContent = `${recentErrors.length} 筆`;
+      if (formsCount) formsCount.textContent = `${recentFormEvents.length} 筆`;
+
+      if (topPagesBody) {
+        topPagesBody.innerHTML = topPages.length
+          ? topPages
+              .map(
+                (item) => `
+                  <tr>
+                    <td><code>${escapeHtml(item.pagePath || '-')}</code></td>
+                    <td>${escapeHtml(String(item.views ?? 0))}</td>
+                  </tr>
+                `,
+              )
+              .join('')
+          : '<tr><td colspan="2">目前沒有資料</td></tr>';
+      }
+
+      if (errorsBody) {
+        errorsBody.innerHTML = recentErrors.length
+          ? recentErrors
+              .map(
+                (item) => `
+                  <tr>
+                    <td>${escapeHtml(formatDate(item.createdAt))}</td>
+                    <td>
+                      <div><code>${escapeHtml(item.source || '-')}</code></div>
+                      <div class="admin-table-subtitle">${escapeHtml(item.pagePath || '-')}</div>
+                    </td>
+                    <td>
+                      <strong>${escapeHtml(item.message || '未提供訊息')}</strong>
+                      <div class="admin-table-subtitle">${escapeHtml(item.stack || '')}</div>
+                    </td>
+                  </tr>
+                `,
+              )
+              .join('')
+          : '<tr><td colspan="3">目前沒有錯誤事件</td></tr>';
+      }
+
+      if (formsBody) {
+        formsBody.innerHTML = recentFormEvents.length
+          ? recentFormEvents
+              .map(
+                (item) => `
+                  <tr>
+                    <td>${escapeHtml(formatDate(item.createdAt))}</td>
+                    <td><code>${escapeHtml(item.pagePath || '-')}</code></td>
+                    <td>${renderStatus(item.status)}</td>
+                    <td>
+                      <strong>${escapeHtml(item.source || '-')}</strong>
+                      <div class="admin-table-subtitle">${escapeHtml(item.message || '沒有訊息')}</div>
+                    </td>
+                  </tr>
+                `,
+              )
+              .join('')
+          : '<tr><td colspan="4">目前沒有表單事件</td></tr>';
+      }
+    };
+
+    loadAnalytics().catch(() => {
+      if (topPagesBody) topPagesBody.innerHTML = '<tr><td colspan="2">分析資料載入失敗</td></tr>';
+      if (errorsBody) errorsBody.innerHTML = '<tr><td colspan="3">分析資料載入失敗</td></tr>';
+      if (formsBody) formsBody.innerHTML = '<tr><td colspan="4">分析資料載入失敗</td></tr>';
+    });
+  </script>
+</BaseLayout>

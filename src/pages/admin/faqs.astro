@@ -1,0 +1,438 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+---
+
+<BaseLayout
+  title="常見問題管理 - PawsHome"
+  description="維護前台常見問題頁顯示的內容。"
+  noIndex={true}
+>
+  <Header />
+
+  <main>
+    <section class="hero" style="min-height: auto;">
+      <div class="container">
+        <SectionHeader
+          eyebrow="Admin"
+          title="常見問題管理"
+          description="維護領養資格、費用、流程與照護相關的常見問題。"
+        />
+
+        <div class="search-card fade-in is-visible admin-pets-toolbar">
+          <div>
+            <h3>內容提示</h3>
+            <p class="pet-description">
+              這裡會直接更新 D1 的 FAQ 資料，前台常見問題頁會同步讀取最新內容。
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-outline" href="/admin">回到後台</a>
+            <a class="btn-primary" href="/faq">查看前台頁</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="container">
+        <div class="admin-stats" id="faqs-stats">
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">FAQ</p>
+            <strong id="faqs-total">-</strong>
+            <span>問題總數</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Topics</p>
+            <strong id="faqs-categories">-</strong>
+            <span>分類數量</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">Focus</p>
+            <strong id="faqs-selected">-</strong>
+            <span>目前選取</span>
+          </article>
+          <article class="admin-stat search-card fade-in is-visible">
+            <p class="section-eyebrow">First</p>
+            <strong id="faqs-first">-</strong>
+            <span>優先分類</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panels">
+      <div class="container">
+        <div class="admin-pets-layout">
+          <article class="admin-panel search-card fade-in is-visible admin-pets-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">FAQ Directory</p>
+                <h3>常見問題清單</h3>
+              </div>
+              <span class="admin-panel-note" id="faqs-count">-</span>
+            </div>
+
+            <div class="admin-pets-search">
+              <label class="admin-search-field" for="faq-admin-search">
+                <span>搜尋 FAQ</span>
+                <input id="faq-admin-search" type="search" placeholder="輸入分類、問題、答案或 ID" />
+              </label>
+              <button class="btn-outline" type="button" id="faq-admin-refresh">重新整理</button>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-pets-table">
+                <thead>
+                  <tr>
+                    <th>問題</th>
+                    <th>分類</th>
+                    <th>排序</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="faqs-table-body">
+                  <tr><td colspan="4">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="admin-panel search-card fade-in is-visible admin-pet-detail-panel">
+            <div class="admin-panel-header">
+              <div>
+                <p class="section-eyebrow">FAQ Editor</p>
+                <h3>常見問題編輯</h3>
+              </div>
+              <span class="admin-panel-note" id="faq-detail-id">未選擇</span>
+            </div>
+
+            <form class="admin-pet-form" id="faq-editor-form">
+              <div class="admin-detail-pet">
+                <div class="admin-detail-pet-emoji" id="faq-detail-icon">?</div>
+                <div>
+                  <h3 id="faq-detail-question">請從左側選擇 FAQ</h3>
+                  <p class="pet-description" id="faq-detail-answer">這裡會顯示答案摘要。</p>
+                </div>
+              </div>
+
+              <div class="admin-form-grid">
+                <label class="admin-search-field">
+                  <span>ID</span>
+                  <input id="faq-field-id" type="text" readonly />
+                </label>
+                <label class="admin-search-field">
+                  <span>顯示順序</span>
+                  <input id="faq-field-sort-order" type="number" min="0" step="1" required />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>分類</span>
+                  <input id="faq-field-category" type="text" required />
+                </label>
+                <label class="admin-search-field admin-full-width">
+                  <span>問題</span>
+                  <input id="faq-field-question" type="text" required />
+                </label>
+              </div>
+
+              <label class="admin-search-field admin-full-width">
+                <span>答案</span>
+                <textarea id="faq-field-answer" rows="7" required></textarea>
+              </label>
+
+              <div class="admin-detail-note-block">
+                <span class="admin-detail-label">前台入口</span>
+                <div class="hero-actions admin-detail-actions">
+                  <a class="btn-outline" id="faq-detail-public" href="/faq">前台頁</a>
+                </div>
+              </div>
+
+              <div class="hero-actions admin-detail-actions">
+                <button class="btn-primary" type="submit" id="faq-save-button" disabled>儲存變更</button>
+                <button class="btn-outline" type="button" id="faq-reset-button" disabled>重設</button>
+              </div>
+
+              <p class="pet-description" id="faq-detail-hint">從左側列表點選 FAQ 後，這裡會載入資料。</p>
+            </form>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    const faqsTotal = document.querySelector('#faqs-total');
+    const faqsCategories = document.querySelector('#faqs-categories');
+    const faqsSelected = document.querySelector('#faqs-selected');
+    const faqsFirst = document.querySelector('#faqs-first');
+    const faqsCount = document.querySelector('#faqs-count');
+    const faqsTableBody = document.querySelector('#faqs-table-body');
+    const searchInput = document.querySelector('#faq-admin-search');
+    const refreshButton = document.querySelector('#faq-admin-refresh');
+    const faqDetailId = document.querySelector('#faq-detail-id');
+    const faqDetailIcon = document.querySelector('#faq-detail-icon');
+    const faqDetailQuestion = document.querySelector('#faq-detail-question');
+    const faqDetailAnswer = document.querySelector('#faq-detail-answer');
+    const faqDetailPublic = document.querySelector('#faq-detail-public');
+    const faqDetailHint = document.querySelector('#faq-detail-hint');
+    const faqEditorForm = document.querySelector('#faq-editor-form');
+    const faqSaveButton = document.querySelector('#faq-save-button');
+    const faqResetButton = document.querySelector('#faq-reset-button');
+    const faqFieldId = document.querySelector('#faq-field-id');
+    const faqFieldSortOrder = document.querySelector('#faq-field-sort-order');
+    const faqFieldCategory = document.querySelector('#faq-field-category');
+    const faqFieldQuestion = document.querySelector('#faq-field-question');
+    const faqFieldAnswer = document.querySelector('#faq-field-answer');
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const allFaqs = [];
+    let currentFaqs = [];
+    let currentFaqId = '';
+    let currentFaqSnapshot = null;
+
+    const renderRow = (faq) => `
+      <tr>
+        <td>
+          <a href="/faq#${escapeHtml(faq.id)}">${escapeHtml(faq.question)}</a>
+          <div class="admin-table-subtitle">${escapeHtml(faq.id)}</div>
+          <div class="admin-table-subtitle">${escapeHtml(faq.answer)}</div>
+        </td>
+        <td><span class="admin-badge default">${escapeHtml(faq.category)}</span></td>
+        <td>${escapeHtml(String(faq.sortOrder ?? 0))}</td>
+        <td>
+          <div class="admin-row-actions">
+            <a class="admin-action-btn secondary" href="/faq#${escapeHtml(faq.id)}">前台頁</a>
+            <a class="admin-action-btn secondary" href="/admin/faqs?id=${encodeURIComponent(faq.id)}">查看詳情</a>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const setDetailState = (message) => {
+      if (faqDetailHint) faqDetailHint.textContent = message;
+    };
+
+    const fillForm = (faq) => {
+      if (!faq) return;
+
+      if (faqFieldId) faqFieldId.value = faq.id || '';
+      if (faqFieldSortOrder) faqFieldSortOrder.value = String(faq.sortOrder ?? 0);
+      if (faqFieldCategory) faqFieldCategory.value = faq.category || '';
+      if (faqFieldQuestion) faqFieldQuestion.value = faq.question || '';
+      if (faqFieldAnswer) faqFieldAnswer.value = faq.answer || '';
+      if (faqSaveButton) faqSaveButton.disabled = false;
+      if (faqResetButton) faqResetButton.disabled = false;
+    };
+
+    const snapshotForm = () => ({
+      id: faqFieldId?.value || '',
+      sortOrder: Number(faqFieldSortOrder?.value || 0),
+      category: faqFieldCategory?.value || '',
+      question: faqFieldQuestion?.value || '',
+      answer: faqFieldAnswer?.value || '',
+    });
+
+    const renderStats = (faqs) => {
+      const categories = new Set(faqs.map((faq) => faq.category).filter(Boolean));
+      const firstFaq = [...faqs].sort((left, right) => Number(left.sortOrder || 0) - Number(right.sortOrder || 0))[0];
+
+      if (faqsTotal) faqsTotal.textContent = String(faqs.length);
+      if (faqsCategories) faqsCategories.textContent = String(categories.size);
+      if (faqsSelected) faqsSelected.textContent = currentFaqId ? '1' : '0';
+      if (faqsFirst) faqsFirst.textContent = firstFaq?.category || '-';
+      if (faqsCount) faqsCount.textContent = `${faqs.length} 筆`;
+    };
+
+    const renderFaqs = () => {
+      if (!faqsTableBody) return;
+
+      if (!currentFaqs.length) {
+        faqsTableBody.innerHTML = '<tr><td colspan="4">沒有找到符合條件的 FAQ</td></tr>';
+        return;
+      }
+
+      faqsTableBody.innerHTML = currentFaqs.map(renderRow).join('');
+    };
+
+    const filterFaqs = () => {
+      const keyword = (searchInput?.value || '').trim().toLowerCase();
+
+      if (!keyword) {
+        currentFaqs = [...allFaqs];
+        renderFaqs();
+        renderStats(currentFaqs);
+        return;
+      }
+
+      currentFaqs = allFaqs.filter((faq) => {
+        const haystack = [
+          faq.id,
+          faq.category,
+          faq.question,
+          faq.answer,
+        ].join(' ').toLowerCase();
+
+        return haystack.includes(keyword);
+      });
+
+      renderFaqs();
+      renderStats(currentFaqs);
+    };
+
+    const renderDetail = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id')?.trim() || '';
+
+      currentFaqId = id;
+
+      if (!id) {
+        currentFaqSnapshot = null;
+        if (faqDetailId) faqDetailId.textContent = '未選擇';
+        if (faqDetailIcon) faqDetailIcon.textContent = '?';
+        if (faqDetailQuestion) faqDetailQuestion.textContent = '請從左側選擇 FAQ';
+        if (faqDetailAnswer) faqDetailAnswer.textContent = '這裡會顯示答案摘要。';
+        if (faqDetailPublic) faqDetailPublic.setAttribute('href', '/faq');
+        if (faqSaveButton) faqSaveButton.disabled = true;
+        if (faqResetButton) faqResetButton.disabled = true;
+        setDetailState('從左側列表點選 FAQ 後，這裡會載入資料。');
+        return;
+      }
+
+      if (faqDetailId) faqDetailId.textContent = `ID：${id}`;
+      setDetailState('載入中...');
+
+      const response = await fetch(`/api/admin/faqs/${encodeURIComponent(id)}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || '讀取 FAQ 詳情失敗');
+      }
+
+      const faq = data.faq || {};
+      currentFaqSnapshot = {
+        id: faq.id || '',
+        category: faq.category || '',
+        question: faq.question || '',
+        answer: faq.answer || '',
+        sortOrder: faq.sortOrder ?? 0,
+      };
+
+      if (faqDetailIcon) faqDetailIcon.textContent = faq.category ? faq.category.slice(0, 1) : '?';
+      if (faqDetailQuestion) faqDetailQuestion.textContent = faq.question || '-';
+      if (faqDetailAnswer) faqDetailAnswer.textContent = faq.answer || '沒有提供答案。';
+      if (faqDetailPublic) faqDetailPublic.setAttribute('href', `/faq#${encodeURIComponent(faq.id || '')}`);
+      fillForm(currentFaqSnapshot);
+      setDetailState('已載入 FAQ 資料。');
+    };
+
+    const loadFaqs = async () => {
+      if (faqsTableBody) {
+        faqsTableBody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
+      }
+
+      const response = await fetch('/api/admin/faqs');
+      const data = await response.json();
+      const faqs = Array.isArray(data.results) ? data.results : [];
+
+      allFaqs.splice(0, allFaqs.length, ...faqs);
+      currentFaqs = [...allFaqs];
+
+      renderFaqs();
+      renderStats(currentFaqs);
+      await renderDetail();
+    };
+
+    searchInput?.addEventListener('input', filterFaqs);
+    refreshButton?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      loadFaqs().catch(() => {
+        if (faqsTableBody) {
+          faqsTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+        }
+      });
+    });
+
+    window.addEventListener('popstate', () => {
+      renderDetail().catch(() => {
+        if (faqDetailQuestion) faqDetailQuestion.textContent = '資料載入失敗';
+        if (faqDetailAnswer) faqDetailAnswer.textContent = '請稍後再試。';
+      });
+    });
+
+    faqsTableBody?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const detailLink = target.closest('a[href^="/admin/faqs?id="]');
+      if (!detailLink) return;
+
+      event.preventDefault();
+      const href = detailLink.getAttribute('href');
+      if (!href) return;
+
+      const url = new URL(href, window.location.origin);
+      window.history.pushState({}, '', `${window.location.pathname}${url.search}`);
+      renderDetail().catch(() => {
+        if (faqDetailQuestion) faqDetailQuestion.textContent = '資料載入失敗';
+        if (faqDetailAnswer) faqDetailAnswer.textContent = '請稍後再試。';
+      });
+    });
+
+    faqResetButton?.addEventListener('click', () => {
+      if (!currentFaqSnapshot) return;
+      fillForm(currentFaqSnapshot);
+      setDetailState('已重設為目前資料。');
+    });
+
+    faqEditorForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      if (!currentFaqId) return;
+
+      const payload = snapshotForm();
+      if (faqSaveButton) faqSaveButton.disabled = true;
+      if (faqResetButton) faqResetButton.disabled = true;
+      setDetailState('儲存中...');
+
+      fetch(`/api/admin/faqs/${encodeURIComponent(currentFaqId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+          if (!response.ok) {
+            throw new Error(data.message || '更新 FAQ 失敗');
+          }
+
+          window.PawsHomeUI?.showNotification?.(data.message || 'FAQ 已更新。');
+          return loadFaqs();
+        })
+        .catch(() => {
+          window.PawsHomeUI?.showNotification?.('更新失敗，請稍後再試。');
+        })
+        .finally(() => {
+          if (faqSaveButton) faqSaveButton.disabled = false;
+          if (faqResetButton) faqResetButton.disabled = false;
+        });
+    });
+
+    loadFaqs().catch(() => {
+      if (faqsTableBody) {
+        faqsTableBody.innerHTML = '<tr><td colspan="4">資料載入失敗</td></tr>';
+      }
+    });
+  </script>
+</BaseLayout>

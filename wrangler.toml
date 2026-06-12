@@ -9,5 +9,5 @@ database_id = "13ad31d6-04f5-49ab-9576-5b9426c8ccec"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
-binding = "PET_IMAGES"
+binding = "paws_pet_images"
 bucket_name = "paws-pet-images"

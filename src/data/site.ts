@@ -18,8 +18,8 @@ export const footerColumns = [
     links: [
       { label: '尋找毛孩', href: '/pets' },
       { label: '領養流程', href: '/#how-it-works' },
-      { label: '領養須知', href: '#' },
-      { label: '常見問題', href: '#' },
+      { label: '領養須知', href: '/adoption-guide' },
+      { label: '常見問題', href: '/faq' },
     ],
   },
   {

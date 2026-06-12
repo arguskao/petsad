@@ -20,12 +20,20 @@
 - `migrations/0001_init.sql` 已建立並套用到遠端
 - `migrations/0002_add_pet_status.sql` 已建立並套用到遠端
 - `/api/pets`、`/api/pets/:id`、`/api/stories`、`/api/shelters` 已可用
+- `/api/faqs` 已可用
 - `/api/favorites` 已可用
 - `/api/admin/summary`、`/api/admin/adoptions`、`/api/admin/favorites` 已可用
 - `/api/admin/adoptions/:id` 已可用
 - `/api/admin/pets/:id` 已可用
 - `/api/admin/pets` 已可用
 - `/api/admin/stories`、`/api/admin/stories/:id` 已可用
+- `/api/admin/faqs`、`/api/admin/faqs/:id` 已可用
+- `/api/adoption-guide` 已可用
+- `/api/site-copies` 已可用
+- `/api/analytics/events` 已可用
+- `/api/admin/adoption-guide`、`/api/admin/adoption-guide/:id` 已可用
+- `/api/admin/site-copies`、`/api/admin/site-copies/:id` 已可用
+- `/api/admin/analytics` 已可用
 - `/api/auth/me`、`/api/auth/register`、`/api/auth/login`、`/api/auth/logout` 已可用
 - `/api/auth/register` 已改成姓名 + Email 註冊，並串接 MailChannels Email API
 - `POST /api/adoptions` 已寫入 `adoption_requests`
@@ -34,6 +42,8 @@
 - `/pets/[id]` 頁已直接讀 `/api/pets/:id`
 - `/apply` 頁已接上申請流程，送出後會導到結果頁
 - `/auth/login`、`/auth/register`、`/member` 已建立
+- `/faq` 已建立，並會讀取 D1 FAQ 資料
+- `/adoption-guide` 已建立，並會讀取 D1 領養須知資料
 - 註冊流程已改成由 Email 寄送臨時密碼
 - 正式站寄信仍需完成 `MAILCHANNELS_API_KEY`、`MAIL_FROM_ADDRESS` 與寄件網域 DNS 設定
 - `/favorites` 頁已可查看收藏清單
@@ -52,6 +62,10 @@
 - `/admin/pets` 已可編輯毛孩資料
 - `/admin/pets` 已可下架 / 標記已領養 / 恢復上架
 - `/admin/stories` 已可查看與編輯成功故事內容
+- `/admin/faqs` 已可查看與編輯常見問題內容
+- `/admin/adoption-guide` 已可查看與編輯領養須知內容
+- `/admin/site-copies` 已可查看與編輯頁面文案
+- `/admin/analytics` 已可查看頁面使用、錯誤與申請事件
 - `/admin/adoptions` 已可查看單筆申請詳情
 - `pnpm run build` 已通過
 
@@ -172,14 +186,14 @@
   - 已支援狀態管理
   - 已支援編輯與下架
 - [ ] 更完整的內容管理
-  - [x] 成功故事
-  - 常見問題
-  - 領養須知
-  - 頁面文案管理
-- [ ] 監控與分析
-  - 錯誤追蹤
-  - 使用分析
-  - 表單送出成功率
+- [x] 成功故事
+- [x] 常見問題
+  - [x] 領養須知
+  - [x] 頁面文案管理
+- [x] 監控與分析
+  - [x] 錯誤追蹤
+  - [x] 使用分析
+  - [x] 表單送出成功率
 
 ## 只記錄
 
