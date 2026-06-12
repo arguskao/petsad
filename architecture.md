@@ -145,6 +145,7 @@ src/
 ### `adoption_requests`
 
 領養申請紀錄。
+目前流程先維持 `pending`、`approved`、`rejected` 三段式，API 與後台共用同一套狀態定義；如果未來有更複雜的審核步驟，再擴充成更完整的狀態機。
 
 ### `favorites`
 

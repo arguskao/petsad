@@ -142,7 +142,9 @@ import SectionHeader from '../../components/SectionHeader.astro';
 
   <Footer />
 
-  <script is:inline>
+  <script>
+    import { getAdoptionRequestStatusMeta } from '../../lib/adoption-status';
+
     const adminStats = {
       totalPets: document.querySelector('[data-admin-stat="totalPets"]'),
       totalAdoptions: document.querySelector('[data-admin-stat="totalAdoptions"]'),
@@ -179,10 +181,8 @@ import SectionHeader from '../../components/SectionHeader.astro';
     };
 
     const renderBadge = (status) => {
-      if (status === 'pending') return '<span class="admin-badge pending">待處理</span>';
-      if (status === 'approved') return '<span class="admin-badge approved">已核准</span>';
-      if (status === 'rejected') return '<span class="admin-badge rejected">已拒絕</span>';
-      return `<span class="admin-badge">${escapeHtml(status || '-')}</span>`;
+      const meta = getAdoptionRequestStatusMeta(status);
+      return `<span class="admin-badge ${escapeHtml(meta.tone)}">${escapeHtml(meta.label)}</span>`;
     };
 
     const renderActionButtons = (item) => {

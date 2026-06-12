@@ -29,6 +29,7 @@ import {
   updateAdoptionGuideSectionInDatabase,
   updatePageCopyInDatabase,
 } from '../../src/lib/content-db';
+import { isAdoptionRequestStatus } from '../../src/lib/adoption-status';
 import { getShelterByIdFromDatabase, updateShelterInDatabase } from '../../src/lib/shelters-db';
 import { getPetByIdFromDatabase, getPetsFromDatabase } from '../../src/lib/paws-db';
 
@@ -2243,13 +2244,12 @@ app.patch('/admin/adoptions/:id', async (c) => {
   const id = c.req.param('id').trim();
   const body = await c.req.json().catch(() => null);
   const nextStatus = typeof body?.status === 'string' ? body.status.trim() : '';
-  const allowedStatuses = new Set(['pending', 'approved', 'rejected']);
 
   if (!id) {
     return c.json({ ok: false, message: '申請 ID 為必填欄位。' }, 400);
   }
 
-  if (!allowedStatuses.has(nextStatus)) {
+  if (!isAdoptionRequestStatus(nextStatus)) {
     return c.json(
       {
         ok: false,

@@ -123,7 +123,9 @@ import SectionHeader from '../../components/SectionHeader.astro';
 
   <Footer />
 
-  <script is:inline>
+  <script>
+    import { getAdoptionRequestStatusMeta } from '../../lib/adoption-status';
+
     const detailId = document.querySelector('#detail-id');
     const detailStatusBadge = document.querySelector('#detail-status-badge');
     const detailTitle = document.querySelector('#detail-title');
@@ -167,10 +169,8 @@ import SectionHeader from '../../components/SectionHeader.astro';
     };
 
     const renderBadge = (status) => {
-      if (status === 'pending') return '<span class="admin-badge pending">待處理</span>';
-      if (status === 'approved') return '<span class="admin-badge approved">已核准</span>';
-      if (status === 'rejected') return '<span class="admin-badge rejected">已拒絕</span>';
-      return `<span class="admin-badge">${escapeHtml(status || '-')}</span>`;
+      const meta = getAdoptionRequestStatusMeta(status);
+      return `<span class="admin-badge ${escapeHtml(meta.tone)}">${escapeHtml(meta.label)}</span>`;
     };
 
     const setLoadingState = (message) => {
@@ -202,10 +202,11 @@ import SectionHeader from '../../components/SectionHeader.astro';
 
       const adoption = data.adoption || {};
       const pet = adoption.pet || {};
+      const statusMeta = getAdoptionRequestStatusMeta(adoption.status);
 
       if (detailTitle) detailTitle.textContent = `${adoption.fullName || '-'} 的申請`;
       if (detailSubtitle) {
-        detailSubtitle.textContent = `${pet.emoji || '🐾'} ${pet.name || '未知毛孩'} · ${adoption.status || '-'}`;
+        detailSubtitle.textContent = `${pet.emoji || '🐾'} ${pet.name || '未知毛孩'} · ${statusMeta.label}`;
       }
       if (detailStatusBadge) detailStatusBadge.innerHTML = renderBadge(adoption.status);
       if (detailName) detailName.textContent = adoption.fullName || '-';
